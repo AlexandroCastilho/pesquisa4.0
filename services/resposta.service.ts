@@ -13,6 +13,18 @@ type EnvioEstadoResposta = {
   resposta: { id: string } | null;
 };
 
+export type RespostaDaPesquisa = Prisma.RespostaGetPayload<{
+  include: {
+    itens: {
+      include: {
+        pergunta: { select: { texto: true; tipo: true } };
+        opcao: { select: { texto: true } };
+      };
+    };
+    envio: { select: { nome: true; email: true; respondidoEm: true } };
+  };
+}>;
+
 export function validarEstadoEnvioParaResposta(envio: EnvioEstadoResposta): {
   expirouAgora: boolean;
 } {
@@ -145,7 +157,7 @@ export async function registrarResposta(token: string, input: RespostaInput) {
 export async function listarRespostasDaPesquisa(
   pesquisaId: string,
   empresaId: string
-) {
+): Promise<RespostaDaPesquisa[]> {
   const prisma = getPrismaClient();
 
   return prisma.resposta.findMany({

@@ -30,7 +30,7 @@ export function Sidebar({ canManageUsers, companyName, role }: Props) {
     <aside className="w-full md:w-72 md:min-h-screen border-b md:border-b-0 md:border-r border-[var(--border)] bg-[var(--card)]/94 backdrop-blur-xl flex flex-col py-4 md:py-6 px-4">
       <div className="mb-4 md:mb-6 px-2">
         <div className="surface-soft px-3 py-3.5">
-          <p className="text-[var(--foreground)] font-bold text-lg tracking-tight">Pesquisa 4.0</p>
+          <p className="text-[var(--foreground)] font-bold text-lg tracking-tight">PulseCliente</p>
           <p className="text-xs text-[var(--muted-foreground)] mt-1">{companyName}</p>
           <p className="text-xs text-[var(--muted-foreground)] mt-1">Perfil: {getRoleLabel(role)}</p>
         </div>

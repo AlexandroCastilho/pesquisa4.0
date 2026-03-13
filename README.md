@@ -1,4 +1,4 @@
-# Pesquisa 4.0
+# PulseCliente
 
 Plataforma SaaS multiempresa para criar pesquisas, configurar perguntas, importar destinatarios, disparar convites por email e acompanhar respostas com governanca por empresa.
 

@@ -13,7 +13,7 @@ const monoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pesquisa 4.0",
+  title: "PulseCliente",
   description: "Plataforma corporativa de pesquisas de satisfação.",
 };
 
