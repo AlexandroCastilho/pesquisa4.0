@@ -1,9 +1,9 @@
 import type { PesquisaStatus } from "@/types/pesquisa";
 
 const statusConfig: Record<PesquisaStatus, { label: string; className: string }> = {
-  RASCUNHO: { label: "Rascunho", className: "bg-slate-100 text-slate-600" },
-  ATIVA: { label: "Ativa", className: "bg-green-100 text-green-700" },
-  ENCERRADA: { label: "Encerrada", className: "bg-red-100 text-red-600" },
+  RASCUNHO: { label: "Rascunho", className: "bg-slate-100 text-slate-700 border border-slate-200" },
+  ATIVA: { label: "Ativa", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+  ENCERRADA: { label: "Encerrada", className: "bg-rose-50 text-rose-700 border border-rose-200" },
 };
 
 export function BadgeStatus({ status }: { status: PesquisaStatus }) {
@@ -18,11 +18,11 @@ export function BadgeStatus({ status }: { status: PesquisaStatus }) {
 import type { EnvioStatus } from "@/types/envio";
 
 const envioStatusConfig: Record<EnvioStatus, { label: string; className: string }> = {
-  PENDENTE: { label: "Pendente", className: "bg-slate-100 text-slate-600" },
-  ENVIADO: { label: "Enviado", className: "bg-blue-100 text-blue-700" },
-  RESPONDIDO: { label: "Respondido", className: "bg-green-100 text-green-700" },
-  EXPIRADO: { label: "Expirado", className: "bg-amber-100 text-amber-700" },
-  ERRO: { label: "Erro", className: "bg-red-100 text-red-600" },
+  PENDENTE: { label: "Pendente", className: "bg-slate-100 text-slate-700 border border-slate-200" },
+  ENVIADO: { label: "Enviado", className: "bg-indigo-50 text-indigo-700 border border-indigo-200" },
+  RESPONDIDO: { label: "Respondido", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+  EXPIRADO: { label: "Expirado", className: "bg-amber-50 text-amber-700 border border-amber-200" },
+  ERRO: { label: "Erro", className: "bg-rose-50 text-rose-700 border border-rose-200" },
 };
 
 export function BadgeEnvioStatus({ status }: { status: EnvioStatus }) {

@@ -18,12 +18,13 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-56 min-h-screen bg-slate-900 flex flex-col py-6 px-4">
-      <div className="mb-8">
-        <p className="text-white font-bold text-lg tracking-tight">Pesquisa 4.0</p>
+    <aside className="w-full md:w-64 md:min-h-screen border-b md:border-b-0 md:border-r border-[var(--border)] bg-[var(--card)]/96 backdrop-blur flex flex-col py-4 md:py-6 px-4">
+      <div className="mb-4 md:mb-8 px-2">
+        <p className="text-[var(--foreground)] font-semibold text-lg tracking-tight">Pesquisa 4.0</p>
+        <p className="text-xs text-[var(--muted-foreground)] mt-1">Painel administrativo</p>
       </div>
 
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 grid grid-cols-2 md:grid-cols-1 gap-1">
         {links.map(({ href, label }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -32,8 +33,8 @@ export function Sidebar() {
               href={href}
               className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
                 active
-                  ? "bg-white/10 text-white"
-                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               {label}
@@ -44,7 +45,7 @@ export function Sidebar() {
 
       <button
         onClick={handleLogout}
-        className="mt-4 rounded-lg px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5 text-left transition"
+        className="btn-ghost mt-3 md:mt-4 justify-center md:justify-start"
       >
         Sair
       </button>

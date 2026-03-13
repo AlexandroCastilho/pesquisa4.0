@@ -25,7 +25,20 @@ export async function dispararPesquisa(
   input: DisparoInput
 ) {
   const prisma = getPrismaClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = rawAppUrl.trim().replace(/\/+$/, "");
+
+  if (appUrl.includes("/callback")) {
+    throw new Error(
+      "NEXT_PUBLIC_APP_URL está incorreta. Use apenas a raiz do sistema, sem /callback."
+    );
+  }
+
+  if (appUrl.includes(".github.dev") && !appUrl.includes(".app.github.dev")) {
+    throw new Error(
+      "NEXT_PUBLIC_APP_URL está incorreta. No Codespaces, use a URL pública da aplicação, como https://<nome>-3000.app.github.dev."
+    );
+  }
 
   const pesquisa = await prisma.pesquisa.findFirst({
     where: { id: pesquisaId, profileId },

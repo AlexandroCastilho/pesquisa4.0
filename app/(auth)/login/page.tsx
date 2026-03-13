@@ -39,32 +39,32 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-slate-900">Entrar</h1>
-        <p className="mt-2 text-sm text-slate-600">Acesse sua conta</p>
+    <main className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
+      <div className="w-full max-w-md app-card p-8">
+        <h1 className="page-title">Entrar</h1>
+        <p className="page-subtitle">Acesse sua conta</p>
 
-        <form onSubmit={handleLogin} className="mt-6 space-y-4">
+        <form onSubmit={handleLogin} className="mt-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700">E-mail</label>
+            <label className="field-label">E-mail</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+              className="field-control"
               placeholder="email@empresa.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Senha</label>
+            <label className="field-label">Senha</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+              className="field-control"
               placeholder="Sua senha"
             />
           </div>
@@ -74,17 +74,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="btn-primary w-full disabled:opacity-60"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
 
         <div className="mt-4 flex justify-between text-sm">
-          <Link href="/cadastro" className="text-slate-700 hover:underline">
+          <Link href="/cadastro" className="text-[var(--accent-foreground)] hover:underline">
             Criar conta
           </Link>
-          <Link href="/esqueci-senha" className="text-slate-700 hover:underline">
+          <Link href="/esqueci-senha" className="text-[var(--accent-foreground)] hover:underline">
             Esqueci minha senha
           </Link>
         </div>

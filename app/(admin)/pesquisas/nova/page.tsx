@@ -39,27 +39,27 @@ export default function NovaPesquisaPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-slate-900">Nova pesquisa</h1>
+      <h1 className="page-title">Nova pesquisa</h1>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4 bg-white rounded-xl shadow p-6">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-5 app-card p-6">
         <div>
-          <label className="block text-sm font-medium text-slate-700">Título *</label>
+          <label className="field-label">Título *</label>
           <input
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+            className="field-control"
             placeholder="Ex: Pesquisa de satisfação Q1 2026"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700">Descrição</label>
+          <label className="field-label">Descrição</label>
           <textarea
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+            className="field-control"
             placeholder="Descrição opcional da pesquisa"
           />
         </div>
@@ -70,14 +70,14 @@ export default function NovaPesquisaPage() {
           <button
             type="submit"
             disabled={loading}
-            className="rounded-lg bg-slate-900 px-5 py-2 text-white font-medium hover:bg-slate-800 transition disabled:opacity-60"
+            className="btn-primary disabled:opacity-60"
           >
             {loading ? "Criando..." : "Criar pesquisa"}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-lg border border-slate-300 px-5 py-2 text-slate-700 hover:bg-slate-50 transition"
+            className="btn-secondary"
           >
             Cancelar
           </button>

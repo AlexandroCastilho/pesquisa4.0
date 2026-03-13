@@ -51,54 +51,54 @@ export default function CadastroPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-slate-900">Criar conta</h1>
-        <p className="mt-2 text-sm text-slate-600">Cadastre sua empresa</p>
+    <main className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
+      <div className="w-full max-w-md app-card p-8">
+        <h1 className="page-title">Criar conta</h1>
+        <p className="page-subtitle">Cadastre sua empresa</p>
 
-        <form onSubmit={handleSignup} className="mt-6 space-y-4">
+        <form onSubmit={handleSignup} className="mt-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Nome</label>
+            <label className="field-label">Nome</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+              className="field-control"
               placeholder="Seu nome"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Empresa</label>
+            <label className="field-label">Empresa</label>
             <input
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+              className="field-control"
               placeholder="Nome da empresa"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">E-mail</label>
+            <label className="field-label">E-mail</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+              className="field-control"
               placeholder="email@empresa.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Senha</label>
+            <label className="field-label">Senha</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+              className="field-control"
               placeholder="Mínimo 8 caracteres"
             />
           </div>
@@ -109,14 +109,14 @@ export default function CadastroPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="btn-primary w-full disabled:opacity-60"
           >
             {loading ? "Criando conta..." : "Criar conta"}
           </button>
         </form>
 
         <div className="mt-4 text-sm text-center">
-          <Link href="/login" className="text-slate-700 hover:underline">
+          <Link href="/login" className="text-[var(--accent-foreground)] hover:underline">
             Já tenho conta
           </Link>
         </div>

@@ -12,17 +12,14 @@ export default async function PesquisasPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-slate-900">Pesquisas</h1>
-        <Link
-          href="/pesquisas/nova"
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800 transition"
-        >
+        <h1 className="page-title">Pesquisas</h1>
+        <Link href="/pesquisas/nova" className="btn-primary">
           + Nova pesquisa
         </Link>
       </div>
 
       {pesquisas.length === 0 ? (
-        <div className="mt-12 text-center text-slate-500">
+        <div className="mt-12 text-center text-[var(--muted-foreground)]">
           Nenhuma pesquisa criada ainda.
         </div>
       ) : (
@@ -31,11 +28,11 @@ export default async function PesquisasPage() {
             <Link
               key={p.id}
               href={`/pesquisas/${p.id}`}
-              className="flex items-center justify-between bg-white rounded-xl shadow px-6 py-4 hover:bg-slate-50 transition"
+              className="app-card app-card-hover flex items-center justify-between px-6 py-4"
             >
               <div>
-                <p className="font-semibold text-slate-900">{p.titulo}</p>
-                <p className="text-sm text-slate-500 mt-0.5">
+                <p className="font-semibold text-[var(--card-foreground)]">{p.titulo}</p>
+                <p className="text-sm text-[var(--muted-foreground)] mt-1">
                   {p._count.perguntas} pergunta(s) · {p._count.envios} envio(s)
                 </p>
               </div>

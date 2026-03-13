@@ -7,9 +7,9 @@ export interface Envio {
   email: string;
   token: string;
   status: EnvioStatus;
-  enviadoEm?: Date | null;
-  respondidoEm?: Date | null;
-  expiraEm?: Date | null;
+  enviadoEm?: string | Date | null;
+  respondidoEm?: string | Date | null;
+  expiraEm?: string | Date | null;
   erroMsg?: string | null;
-  criadoEm: Date;
+  criadoEm: string | Date;
 }

@@ -57,17 +57,17 @@ export function PerguntasManager({ pesquisaId, perguntas: initial }: Props) {
     <div className="space-y-6">
       {/* Lista de perguntas existentes */}
       {perguntas.length === 0 ? (
-        <p className="text-slate-400 text-sm">Nenhuma pergunta cadastrada ainda.</p>
+        <p className="text-[var(--muted-foreground)] text-sm">Nenhuma pergunta cadastrada ainda.</p>
       ) : (
         <div className="space-y-3">
           {perguntas.map((p, idx) => (
-            <div key={p.id} className="bg-white rounded-xl shadow px-5 py-4">
-              <p className="text-xs text-slate-400 mb-1">Pergunta {idx + 1} · {p.tipo.replace("_", " ")}</p>
-              <p className="font-medium text-slate-800">{p.texto}</p>
+            <div key={p.id} className="app-card px-5 py-4">
+              <p className="text-xs text-[var(--muted-foreground)] mb-1">Pergunta {idx + 1} · {p.tipo.replace("_", " ")}</p>
+              <p className="font-medium text-[var(--card-foreground)]">{p.texto}</p>
               {p.opcoes.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {p.opcoes.map((o) => (
-                    <li key={o.id} className="text-sm text-slate-500">• {o.texto}</li>
+                    <li key={o.id} className="text-sm text-[var(--muted-foreground)]">• {o.texto}</li>
                   ))}
                 </ul>
               )}
@@ -77,25 +77,25 @@ export function PerguntasManager({ pesquisaId, perguntas: initial }: Props) {
       )}
 
       {/* Formulário de nova pergunta */}
-      <form onSubmit={handleAddPergunta} className="bg-white rounded-xl shadow p-6 space-y-4">
-        <h2 className="font-semibold text-slate-800">Adicionar pergunta</h2>
+      <form onSubmit={handleAddPergunta} className="app-card p-6 space-y-5">
+        <h2 className="font-semibold text-[var(--card-foreground)]">Adicionar pergunta</h2>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700">Texto da pergunta</label>
+          <label className="field-label">Texto da pergunta</label>
           <input
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             required
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-500"
+            className="field-control"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700">Tipo</label>
+          <label className="field-label">Tipo</label>
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value as typeof tipo)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-500"
+            className="field-control"
           >
             <option value="MULTIPLA_ESCOLHA">Múltipla escolha</option>
             <option value="TEXTO_LIVRE">Texto livre</option>
@@ -105,7 +105,7 @@ export function PerguntasManager({ pesquisaId, perguntas: initial }: Props) {
 
         {tipo === "MULTIPLA_ESCOLHA" && (
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700">Opções</label>
+            <label className="field-label">Opções</label>
             {opcoes.map((o, i) => (
               <input
                 key={i}
@@ -115,14 +115,14 @@ export function PerguntasManager({ pesquisaId, perguntas: initial }: Props) {
                   next[i] = { texto: e.target.value };
                   setOpcoes(next);
                 }}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-500"
+                className="field-control"
                 placeholder={`Opção ${i + 1}`}
               />
             ))}
             <button
               type="button"
               onClick={() => setOpcoes((prev) => [...prev, { texto: "" }])}
-              className="text-sm text-slate-500 hover:text-slate-800"
+              className="btn-ghost px-0"
             >
               + Adicionar opção
             </button>
@@ -134,7 +134,7 @@ export function PerguntasManager({ pesquisaId, perguntas: initial }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-lg bg-slate-900 px-5 py-2 text-white font-medium hover:bg-slate-800 transition disabled:opacity-60"
+          className="btn-primary disabled:opacity-60"
         >
           {loading ? "Salvando..." : "Adicionar pergunta"}
         </button>

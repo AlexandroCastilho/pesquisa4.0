@@ -15,8 +15,8 @@ export default async function PerguntasPage({ params }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold text-slate-900">Perguntas</h1>
-      <p className="mt-1 text-slate-600">{pesquisa.titulo}</p>
+      <h1 className="page-title">Perguntas</h1>
+      <p className="page-subtitle">{pesquisa.titulo}</p>
 
       <div className="mt-6">
         <PerguntasManager pesquisaId={id} perguntas={pesquisa.perguntas} />

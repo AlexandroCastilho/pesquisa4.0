@@ -74,7 +74,7 @@ export default function ResponderPage() {
   }
 
   if (status === "loading") {
-    return <FullPage><p className="text-slate-500">Carregando pesquisa...</p></FullPage>;
+    return <FullPage><p className="text-[var(--muted-foreground)]">Carregando pesquisa...</p></FullPage>;
   }
 
   if (status === "respondido") {
@@ -88,8 +88,8 @@ export default function ResponderPage() {
   if (status === "enviado") {
     return (
       <FullPage>
-        <p className="text-2xl font-bold text-slate-900">Obrigado!</p>
-        <p className="mt-2 text-slate-600">Sua resposta foi registrada com sucesso.</p>
+        <p className="text-2xl font-semibold text-[var(--foreground)]">Obrigado!</p>
+        <p className="mt-2 text-[var(--muted-foreground)]">Sua resposta foi registrada com sucesso.</p>
       </FullPage>
     );
   }
@@ -99,19 +99,19 @@ export default function ResponderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 py-10 px-4">
+    <main className="min-h-screen bg-[var(--background)] py-10 px-4">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow p-8">
-          <h1 className="text-2xl font-bold text-slate-900">{pesquisa.titulo}</h1>
+        <div className="app-card p-8">
+          <h1 className="text-2xl font-semibold text-[var(--card-foreground)]">{pesquisa.titulo}</h1>
           {pesquisa.descricao && (
-            <p className="mt-2 text-slate-600">{pesquisa.descricao}</p>
+            <p className="mt-2 text-[var(--muted-foreground)]">{pesquisa.descricao}</p>
           )}
-          <p className="mt-1 text-sm text-slate-400">Olá, {envio.nome}!</p>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">Olá, {envio.nome}!</p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-8">
             {pesquisa.perguntas.map((pergunta) => (
               <div key={pergunta.id}>
-                <p className="font-medium text-slate-800">{pergunta.texto}</p>
+                <p className="font-medium text-[var(--foreground)]">{pergunta.texto}</p>
 
                 {pergunta.tipo === "MULTIPLA_ESCOLHA" && (
                   <div className="mt-3 space-y-2">
@@ -129,7 +129,7 @@ export default function ResponderPage() {
                           }
                           className="accent-slate-900"
                         />
-                        <span className="text-slate-700">{opcao.texto}</span>
+                        <span className="text-[var(--foreground)]">{opcao.texto}</span>
                       </label>
                     ))}
                   </div>
@@ -144,13 +144,13 @@ export default function ResponderPage() {
                         [pergunta.id]: { textoLivre: e.target.value },
                       }))
                     }
-                    className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
+                    className="mt-3 field-control"
                     placeholder="Sua resposta..."
                   />
                 )}
 
                 {pergunta.tipo === "ESCALA" && (
-                  <div className="mt-3 flex gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                       <button
                         key={n}
@@ -163,8 +163,8 @@ export default function ResponderPage() {
                         }
                         className={`w-9 h-9 rounded-lg border font-medium text-sm transition ${
                           respostas[pergunta.id]?.valorEscala === n
-                            ? "bg-slate-900 text-white border-slate-900"
-                            : "border-slate-300 text-slate-600 hover:bg-slate-100"
+                            ? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)]"
+                            : "border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
                         }`}
                       >
                         {n}
@@ -180,7 +180,7 @@ export default function ResponderPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-white font-medium hover:bg-slate-800 transition disabled:opacity-60"
+              className="btn-primary w-full disabled:opacity-60"
             >
               {submitting ? "Enviando..." : "Enviar respostas"}
             </button>
@@ -193,8 +193,8 @@ export default function ResponderPage() {
 
 function FullPage({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow p-8 text-center">
+    <main className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
+      <div className="w-full max-w-md app-card p-8 text-center">
         {children}
       </div>
     </main>

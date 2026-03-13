@@ -18,9 +18,9 @@ export default async function PesquisaDetalhe({ params }: Props) {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">{pesquisa.titulo}</h1>
+          <h1 className="page-title">{pesquisa.titulo}</h1>
           {pesquisa.descricao && (
-            <p className="mt-1 text-slate-600">{pesquisa.descricao}</p>
+            <p className="page-subtitle">{pesquisa.descricao}</p>
           )}
         </div>
         <BadgeStatus status={pesquisa.status} />
@@ -59,10 +59,10 @@ function NavCard({
   return (
     <Link
       href={href}
-      className="bg-white rounded-xl shadow p-6 hover:bg-slate-50 transition"
+      className="app-card app-card-hover p-6"
     >
-      <h2 className="font-semibold text-lg text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm text-slate-500">{description}</p>
+      <h2 className="font-semibold text-lg text-[var(--card-foreground)]">{title}</h2>
+      <p className="mt-1 text-sm text-[var(--muted-foreground)]">{description}</p>
     </Link>
   );
 }
