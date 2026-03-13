@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --input-bg: #ffffff;
+  --input-fg: #0f172a;
+  --input-border: #cbd5e1;
+  --input-placeholder: #64748b;
 }
 
 @theme inline {
@@ -16,6 +20,10 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --input-bg: #0f172a;
+    --input-fg: #e2e8f0;
+    --input-border: #334155;
+    --input-placeholder: #94a3b8;
   }
 }
 
@@ -23,4 +31,28 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+input,
+textarea,
+select {
+  background-color: var(--input-bg);
+  color: var(--input-fg);
+  border-color: var(--input-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--input-fg);
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset;
+  transition: background-color 5000s ease-in-out 0s;
 }

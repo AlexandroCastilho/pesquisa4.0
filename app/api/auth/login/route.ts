@@ -5,6 +5,32 @@ import { loginSchema } from "@/lib/validation/auth";
 import { getPrismaClient } from "@/lib/prisma";
 import { z } from "zod";
 
+function mapLoginError(detail: string) {
+  const normalized = detail.toLowerCase();
+
+  if (normalized.includes("email not confirmed") || normalized.includes("email_not_confirmed")) {
+    return {
+      status: 401,
+      message: "Confirme seu e-mail antes de entrar.",
+      detail: "Verifique sua caixa de entrada e clique no link de confirmação.",
+    };
+  }
+
+  if (normalized.includes("invalid login credentials")) {
+    return {
+      status: 401,
+      message: "E-mail ou senha inválidos.",
+      detail: "Confira os dados e tente novamente.",
+    };
+  }
+
+  return {
+    status: 401,
+    message: "Não foi possível realizar o login.",
+    detail,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -14,7 +40,11 @@ export async function POST(request: Request) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      return NextResponse.json({ message: "E-mail ou senha inválidos." }, { status: 401 });
+      const mapped = mapLoginError(error.message);
+      return NextResponse.json(
+        { message: mapped.message, detail: mapped.detail },
+        { status: mapped.status }
+      );
     }
 
     // Garante que o perfil existe no banco (criado no primeiro login)

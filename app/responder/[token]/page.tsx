@@ -144,7 +144,7 @@ export default function ResponderPage() {
                         [pergunta.id]: { textoLivre: e.target.value },
                       }))
                     }
-                    className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-slate-500"
+                    className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-slate-500"
                     placeholder="Sua resposta..."
                   />
                 )}
