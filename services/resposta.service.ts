@@ -12,9 +12,8 @@ type EnvioEstadoResposta = {
   resposta: { id: string } | null;
 };
 
-type TxClient = Parameters<
-  Parameters<ReturnType<typeof getPrismaClient>["$transaction"]>[0]
->[0];
+type PrismaClientLike = ReturnType<typeof getPrismaClient>;
+type TxClient = Pick<PrismaClientLike, "envio" | "resposta">;
 
 export type RespostaDaPesquisa = {
   id: string;

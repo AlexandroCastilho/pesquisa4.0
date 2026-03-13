@@ -16,9 +16,8 @@ type BootstrapInput = {
   preferredCompany?: string | null;
 };
 
-type TxClient = Parameters<
-  Parameters<ReturnType<typeof getPrismaClient>["$transaction"]>[0]
->[0];
+type PrismaClientLike = ReturnType<typeof getPrismaClient>;
+type TxClient = Pick<PrismaClientLike, "profile" | "empresa">;
 
 function cleanText(value: string | null | undefined): string | null {
   if (!value) return null;

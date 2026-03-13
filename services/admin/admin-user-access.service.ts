@@ -2,9 +2,8 @@ import type { Role } from "@/types/role";
 import { canAssignRole, canEditTargetUser, canManageUsers } from "@/lib/access-control";
 import { getPrismaClient } from "@/lib/prisma";
 
-type TxClient = Parameters<
-  Parameters<ReturnType<typeof getPrismaClient>["$transaction"]>[0]
->[0];
+type PrismaClientLike = ReturnType<typeof getPrismaClient>;
+type TxClient = Pick<PrismaClientLike, "profile">;
 
 type Actor = {
   id: string;
