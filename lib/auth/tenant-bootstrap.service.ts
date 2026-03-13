@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { Role } from "@/types/role";
 import { getPrismaClient } from "@/lib/prisma";
 import {
@@ -63,7 +64,7 @@ export async function ensureTenantBootstrap(input: BootstrapInput): Promise<{
   const preferredName = cleanText(input.preferredName ?? metadataName);
   const preferredCompany = cleanText(input.preferredCompany ?? metadataCompany);
 
-  const profileWithEmpresa = await prisma.$transaction(async (tx) => {
+  const profileWithEmpresa = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const existingProfile = await tx.profile.findUnique({
       where: { id: input.user.id },
       include: { empresa: true },

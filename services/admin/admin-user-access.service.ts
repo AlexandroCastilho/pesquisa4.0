@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { Role } from "@/types/role";
 import { canAssignRole, canEditTargetUser, canManageUsers } from "@/lib/access-control";
 import { getPrismaClient } from "@/lib/prisma";
@@ -28,7 +29,7 @@ export async function atualizarAcessoUsuario({
   assertActorCanManageUsers(actor.role);
   const prisma = getPrismaClient();
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const target = await tx.profile.findFirst({
       where: { id: targetUserId, empresaId: actor.empresaId },
       select: {

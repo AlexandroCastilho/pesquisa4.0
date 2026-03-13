@@ -79,7 +79,7 @@ export async function registrarResposta(token: string, input: RespostaInput) {
   const prisma = getPrismaClient();
 
   try {
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const envio = await tx.envio.findUnique({
         where: { token },
         select: {
