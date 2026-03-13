@@ -5,6 +5,9 @@ import { buscarPesquisa } from "@/services/pesquisa.service";
 import { listarRespostasDaPesquisa } from "@/services/resposta.service";
 
 type Props = { params: Promise<{ id: string }> };
+type RespostasDaPesquisa = Awaited<ReturnType<typeof listarRespostasDaPesquisa>>;
+type RespostaDaPesquisa = RespostasDaPesquisa[number];
+type ItemDaResposta = RespostaDaPesquisa["itens"][number];
 
 export default async function ResultadosPage({ params }: Props) {
   const { id } = await params;
@@ -53,7 +56,7 @@ export default async function ResultadosPage({ params }: Props) {
         </div>
       ) : (
         <div className="space-y-5">
-          {respostas.map((r) => (
+          {respostas.map((r: RespostaDaPesquisa) => (
             <div key={r.id} className="app-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -63,7 +66,7 @@ export default async function ResultadosPage({ params }: Props) {
                 <p className="text-xs text-[var(--muted-foreground)]">{r.itens.length} item(ns)</p>
               </div>
               <div className="space-y-3">
-                {r.itens.map((item) => (
+                {r.itens.map((item: ItemDaResposta) => (
                   <div key={item.id} className="surface-soft p-3 text-sm">
                     <p className="font-medium text-[var(--foreground)]">{item.pergunta.texto}</p>
                     <p className="mt-0.5 text-[var(--muted-foreground)]">
