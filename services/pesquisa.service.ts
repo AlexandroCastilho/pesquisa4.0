@@ -1,11 +1,11 @@
 import { getPrismaClient } from "@/lib/prisma";
 import type { PesquisaInput } from "@/lib/validation/pesquisa";
 
-export async function listarPesquisas(profileId: string) {
+export async function listarPesquisas(empresaId: string) {
   const prisma = getPrismaClient();
 
   return prisma.pesquisa.findMany({
-    where: { profileId },
+    where: { empresaId },
     orderBy: { criadaEm: "desc" },
     include: {
       _count: { select: { perguntas: true, envios: true } },
@@ -13,11 +13,11 @@ export async function listarPesquisas(profileId: string) {
   });
 }
 
-export async function buscarPesquisa(id: string, profileId: string) {
+export async function buscarPesquisa(id: string, empresaId: string) {
   const prisma = getPrismaClient();
 
   return prisma.pesquisa.findFirst({
-    where: { id, profileId },
+    where: { id, empresaId },
     include: {
       perguntas: {
         orderBy: { ordem: "asc" },
@@ -30,13 +30,18 @@ export async function buscarPesquisa(id: string, profileId: string) {
   });
 }
 
-export async function criarPesquisa(profileId: string, data: PesquisaInput) {
+export async function criarPesquisa(
+  empresaId: string,
+  profileId: string,
+  data: PesquisaInput
+) {
   const prisma = getPrismaClient();
 
   return prisma.pesquisa.create({
     data: {
       titulo: data.titulo,
       descricao: data.descricao ?? null,
+      empresaId,
       profileId,
     },
   });
@@ -44,13 +49,13 @@ export async function criarPesquisa(profileId: string, data: PesquisaInput) {
 
 export async function atualizarPesquisa(
   id: string,
-  profileId: string,
+  empresaId: string,
   data: PesquisaInput
 ) {
   const prisma = getPrismaClient();
 
   return prisma.pesquisa.updateMany({
-    where: { id, profileId },
+    where: { id, empresaId },
     data: {
       titulo: data.titulo,
       descricao: data.descricao ?? null,
@@ -59,10 +64,10 @@ export async function atualizarPesquisa(
   });
 }
 
-export async function deletarPesquisa(id: string, profileId: string) {
+export async function deletarPesquisa(id: string, empresaId: string) {
   const prisma = getPrismaClient();
 
   return prisma.pesquisa.deleteMany({
-    where: { id, profileId },
+    where: { id, empresaId },
   });
 }

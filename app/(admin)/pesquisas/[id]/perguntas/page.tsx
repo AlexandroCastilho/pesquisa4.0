@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuthTenantContext } from "@/lib/auth-context";
 import { buscarPesquisa } from "@/services/pesquisa.service";
 import { PerguntasManager } from "@/components/perguntas/perguntas-manager";
 
@@ -7,10 +7,9 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function PerguntasPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const ctx = await requireAuthTenantContext();
 
-  const pesquisa = await buscarPesquisa(id, user!.id);
+  const pesquisa = await buscarPesquisa(id, ctx.empresa.id);
   if (!pesquisa) notFound();
 
   return (

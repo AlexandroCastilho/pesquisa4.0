@@ -1,41 +1,43 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { createErrorResponse } from "@/lib/api-error";
+import { requireAdminTenantContext, assertCanManagePesquisa } from "@/lib/auth-context";
 import { perguntaSchema } from "@/lib/validation/pesquisa";
 import { getPrismaClient } from "@/lib/prisma";
 import { buscarPesquisa } from "@/services/pesquisa.service";
-
-async function getAuthUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
   try {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const ctx = await requireAdminTenantContext();
 
     const { id } = await params;
-    const pesquisa = await buscarPesquisa(id, user.id);
+    const pesquisa = await buscarPesquisa(id, ctx.empresa.id);
     if (!pesquisa) return NextResponse.json({ message: "Pesquisa não encontrada." }, { status: 404 });
 
     return NextResponse.json({ perguntas: pesquisa.perguntas });
   } catch (error) {
-    return createErrorResponse({ error, message: "Falha ao listar perguntas." });
+    return createErrorResponse({
+      error,
+      message: "Falha ao listar perguntas.",
+      statusRules: [
+        { includes: "Sessão inválida", status: 401 },
+        { includes: "sem empresa", status: 403 },
+        { includes: "desativada", status: 403 },
+        { includes: "Acesso negado", status: 403 },
+      ],
+    });
   }
 }
 
 export async function POST(request: Request, { params }: Params) {
   try {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const ctx = await requireAdminTenantContext();
+    assertCanManagePesquisa(ctx.profile);
 
     const { id } = await params;
-    const pesquisa = await buscarPesquisa(id, user.id);
+    const pesquisa = await buscarPesquisa(id, ctx.empresa.id);
     if (!pesquisa) return NextResponse.json({ message: "Pesquisa não encontrada." }, { status: 404 });
 
     const body = await request.json();
@@ -66,6 +68,16 @@ export async function POST(request: Request, { params }: Params) {
       const detail = error.issues.map((i) => i.message).join(" ");
       return NextResponse.json({ message: "Dados inválidos.", detail }, { status: 400 });
     }
-    return createErrorResponse({ error, message: "Falha ao criar pergunta." });
+    return createErrorResponse({
+      error,
+      message: "Falha ao criar pergunta.",
+      statusRules: [
+        { includes: "Sessão inválida", status: 401 },
+        { includes: "sem empresa", status: 403 },
+        { includes: "desativada", status: 403 },
+        { includes: "Acesso negado", status: 403 },
+        { includes: "não tem permissão", status: 403 },
+      ],
+    });
   }
 }

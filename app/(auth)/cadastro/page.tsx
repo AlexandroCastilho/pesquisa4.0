@@ -58,47 +58,56 @@ export default function CadastroPage() {
 
         <form onSubmit={handleSignup} className="mt-6 space-y-5">
           <div>
-            <label className="field-label">Nome</label>
+            <label htmlFor="name" className="field-label">Nome</label>
             <input
+              id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="field-control"
+              autoComplete="name"
+              className="field-control block min-h-11"
               placeholder="Seu nome"
             />
           </div>
 
           <div>
-            <label className="field-label">Empresa</label>
+            <label htmlFor="company" className="field-label">Empresa</label>
             <input
+              id="company"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               required
-              className="field-control"
+              autoComplete="organization"
+              className="field-control block min-h-11"
               placeholder="Nome da empresa"
             />
           </div>
 
           <div>
-            <label className="field-label">E-mail</label>
+            <label htmlFor="signup-email" className="field-label">E-mail</label>
             <input
+              id="signup-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="field-control"
+              autoComplete="email"
+              inputMode="email"
+              className="field-control block min-h-11"
               placeholder="email@empresa.com"
             />
           </div>
 
           <div>
-            <label className="field-label">Senha</label>
+            <label htmlFor="signup-password" className="field-label">Senha</label>
             <input
+              id="signup-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="field-control"
+              autoComplete="new-password"
+              className="field-control block min-h-11"
               placeholder="Mínimo 8 caracteres"
             />
           </div>

@@ -50,15 +50,67 @@ export async function POST(request: Request) {
     // Garante que o perfil existe no banco (criado no primeiro login)
     if (data.user) {
       const prisma = getPrismaClient();
-      await prisma.profile.upsert({
-        where: { id: data.user.id },
-        update: {},
-        create: {
-          id: data.user.id,
-          name: data.user.user_metadata?.name ?? null,
-          company: data.user.user_metadata?.company ?? null,
-        },
+      const metadataName = data.user.user_metadata?.name ?? null;
+      const metadataCompany = data.user.user_metadata?.company ?? null;
+
+      await prisma.$transaction(async (tx) => {
+        const existingProfile = await tx.profile.findUnique({
+          where: { id: data.user!.id },
+          include: { empresa: true },
+        });
+
+        if (existingProfile?.empresaId) {
+          return;
+        }
+
+        const companyBase = (metadataCompany ?? metadataName ?? "Empresa")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 40);
+
+        const empresa = await tx.empresa.create({
+          data: {
+            nome: metadataCompany ?? metadataName ?? `Empresa ${data.user!.id.slice(0, 6)}`,
+            slug: `${companyBase || "empresa"}-${data.user!.id.slice(0, 6)}`,
+          },
+        });
+
+        await tx.profile.upsert({
+          where: { id: data.user!.id },
+          update: {
+            name: metadataName,
+            company: metadataCompany,
+            empresaId: empresa.id,
+            ativo: true,
+          },
+          create: {
+            id: data.user!.id,
+            name: metadataName,
+            company: metadataCompany,
+            empresaId: empresa.id,
+            role: "OWNER",
+            ativo: true,
+          },
+        });
       });
+
+      const profile = await prisma.profile.findUnique({
+        where: { id: data.user.id },
+        select: { ativo: true },
+      });
+
+      if (profile && !profile.ativo) {
+        await supabase.auth.signOut();
+        return NextResponse.json(
+          {
+            message: "Acesso bloqueado.",
+            detail: "Sua conta está desativada. Fale com o administrador da sua empresa.",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     return NextResponse.json({ message: "Login realizado com sucesso." }, { status: 200 });

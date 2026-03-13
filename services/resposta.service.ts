@@ -61,3 +61,29 @@ export async function registrarResposta(token: string, input: RespostaInput) {
 
   return resposta;
 }
+
+export async function listarRespostasDaPesquisa(
+  pesquisaId: string,
+  empresaId: string
+) {
+  const prisma = getPrismaClient();
+
+  return prisma.resposta.findMany({
+    where: {
+      envio: {
+        pesquisaId,
+        pesquisa: { empresaId },
+      },
+    },
+    include: {
+      itens: {
+        include: {
+          pergunta: { select: { texto: true, tipo: true } },
+          opcao: { select: { texto: true } },
+        },
+      },
+      envio: { select: { nome: true, email: true, respondidoEm: true } },
+    },
+    orderBy: { criadaEm: "desc" },
+  });
+}

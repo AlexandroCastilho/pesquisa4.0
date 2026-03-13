@@ -1,28 +1,22 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { createErrorResponse } from "@/lib/api-error";
+import { requireAdminTenantContext, assertCanManagePesquisa } from "@/lib/auth-context";
 import { disparoSchema } from "@/lib/validation/pesquisa";
 import { dispararPesquisa } from "@/services/envio.service";
-
-async function getAuthUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
   try {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const ctx = await requireAdminTenantContext();
+    assertCanManagePesquisa(ctx.profile);
 
     const { id } = await params;
     const body = await request.json();
     const data = disparoSchema.parse(body);
 
-    const resultados = await dispararPesquisa(id, user.id, data);
+    const resultados = await dispararPesquisa(id, ctx.empresa.id, data);
     return NextResponse.json({ resultados }, { status: 200 });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -32,7 +26,14 @@ export async function POST(request: Request, { params }: Params) {
     return createErrorResponse({
       error,
       message: "Falha ao disparar pesquisa.",
-      statusRules: [{ includes: "não encontrada", status: 404 }],
+      statusRules: [
+        { includes: "não encontrada", status: 404 },
+        { includes: "Sessão inválida", status: 401 },
+        { includes: "sem empresa", status: 403 },
+        { includes: "desativada", status: 403 },
+        { includes: "Acesso negado", status: 403 },
+        { includes: "não tem permissão", status: 403 },
+      ],
     });
   }
 }

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuthTenantContext } from "@/lib/auth-context";
 import { listarEnvios } from "@/services/envio.service";
 import { buscarPesquisa } from "@/services/pesquisa.service";
 import { EnviosPanel } from "@/components/pesquisas/envios-panel";
@@ -8,13 +8,12 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function EnviosPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const ctx = await requireAuthTenantContext();
 
-  const pesquisa = await buscarPesquisa(id, user!.id);
+  const pesquisa = await buscarPesquisa(id, ctx.empresa.id);
   if (!pesquisa) notFound();
 
-  const envios = await listarEnvios(id, user!.id);
+  const envios = await listarEnvios(id, ctx.empresa.id);
   if (!envios) notFound();
 
   return (

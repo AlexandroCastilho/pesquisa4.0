@@ -1,33 +1,18 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuthTenantContext } from "@/lib/auth-context";
 import { buscarPesquisa } from "@/services/pesquisa.service";
-import { getPrismaClient } from "@/lib/prisma";
+import { listarRespostasDaPesquisa } from "@/services/resposta.service";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function ResultadosPage({ params }: Props) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const ctx = await requireAuthTenantContext();
 
-  const pesquisa = await buscarPesquisa(id, user!.id);
+  const pesquisa = await buscarPesquisa(id, ctx.empresa.id);
   if (!pesquisa) notFound();
 
-  const prisma = getPrismaClient();
-
-  const respostas = await prisma.resposta.findMany({
-    where: { envio: { pesquisaId: id } },
-    include: {
-      itens: {
-        include: {
-          pergunta: { select: { texto: true, tipo: true } },
-          opcao: { select: { texto: true } },
-        },
-      },
-      envio: { select: { nome: true, email: true, respondidoEm: true } },
-    },
-    orderBy: { criadaEm: "desc" },
-  });
+  const respostas = await listarRespostasDaPesquisa(id, ctx.empresa.id);
 
   return (
     <div className="max-w-5xl mx-auto">

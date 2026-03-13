@@ -1,20 +1,19 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminTenantContext } from "@/lib/auth-context";
 import { getPrismaClient } from "@/lib/prisma";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const ctx = await requireAdminTenantContext();
 
   const prisma = getPrismaClient();
 
   const [totalPesquisas, totalEnvios, respondidos] = await Promise.all([
-    prisma.pesquisa.count({ where: { profileId: user!.id } }),
+    prisma.pesquisa.count({ where: { empresaId: ctx.empresa.id } }),
     prisma.envio.count({
-      where: { pesquisa: { profileId: user!.id } },
+      where: { pesquisa: { empresaId: ctx.empresa.id } },
     }),
     prisma.envio.count({
-      where: { pesquisa: { profileId: user!.id }, status: "RESPONDIDO" },
+      where: { pesquisa: { empresaId: ctx.empresa.id }, status: "RESPONDIDO" },
     }),
   ]);
 

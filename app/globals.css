@@ -140,13 +140,18 @@ textarea:-webkit-autofill:focus {
   }
 
   .field-control {
+    appearance: none;
+    -webkit-appearance: none;
     background: var(--card);
     color: var(--foreground);
     border: 1px solid var(--input);
     width: 100%;
+    display: block;
     border-radius: 0.75rem;
+    min-height: 2.75rem;
     padding: 0.625rem 0.875rem;
     font-size: 0.875rem;
+    line-height: 1.4;
     transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
   }
 

@@ -2,12 +2,12 @@ import { getPrismaClient } from "@/lib/prisma";
 import { sendEmail, buildPesquisaEmailHtml } from "@/services/email.service";
 import type { DisparoInput } from "@/lib/validation/pesquisa";
 
-export async function listarEnvios(pesquisaId: string, profileId: string) {
+export async function listarEnvios(pesquisaId: string, empresaId: string) {
   const prisma = getPrismaClient();
 
-  // Garante que a pesquisa pertence ao perfil
+  // Garante que a pesquisa pertence à empresa
   const pesquisa = await prisma.pesquisa.findFirst({
-    where: { id: pesquisaId, profileId },
+    where: { id: pesquisaId, empresaId },
     select: { id: true },
   });
 
@@ -21,7 +21,7 @@ export async function listarEnvios(pesquisaId: string, profileId: string) {
 
 export async function dispararPesquisa(
   pesquisaId: string,
-  profileId: string,
+  empresaId: string,
   input: DisparoInput
 ) {
   const prisma = getPrismaClient();
@@ -41,7 +41,7 @@ export async function dispararPesquisa(
   }
 
   const pesquisa = await prisma.pesquisa.findFirst({
-    where: { id: pesquisaId, profileId },
+    where: { id: pesquisaId, empresaId },
     select: { id: true, titulo: true },
   });
 

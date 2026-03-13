@@ -36,18 +36,41 @@ export async function POST(request: Request) {
     }
 
     if (data.user) {
+      const authUser = data.user;
       const prisma = getPrismaClient();
-      await prisma.profile.upsert({
-        where: { id: data.user.id },
-        update: {
-          name,
-          company,
-        },
-        create: {
-          id: data.user.id,
-          name,
-          company,
-        },
+      const baseSlug = company
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40);
+
+      await prisma.$transaction(async (tx) => {
+        const empresa = await tx.empresa.create({
+          data: {
+            nome: company,
+            slug: `${baseSlug || "empresa"}-${authUser.id.slice(0, 6)}`,
+          },
+        });
+
+        await tx.profile.upsert({
+          where: { id: authUser.id },
+          update: {
+            name,
+            company,
+            empresaId: empresa.id,
+            role: "OWNER",
+            ativo: true,
+          },
+          create: {
+            id: authUser.id,
+            name,
+            company,
+            empresaId: empresa.id,
+            role: "OWNER",
+            ativo: true,
+          },
+        });
       });
     }
 

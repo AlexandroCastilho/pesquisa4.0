@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuthTenantContext } from "@/lib/auth-context";
 import { listarPesquisas } from "@/services/pesquisa.service";
 import { BadgeStatus } from "@/components/ui/badge";
 
 export default async function PesquisasPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const pesquisas = await listarPesquisas(user!.id);
+  const ctx = await requireAuthTenantContext();
+  const pesquisas = await listarPesquisas(ctx.empresa.id);
 
   return (
     <div className="max-w-5xl mx-auto">

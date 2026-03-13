@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createErrorResponse } from "@/lib/api-error";
+import { requireAdminTenantContext } from "@/lib/auth-context";
 import { listarEnvios } from "@/services/envio.service";
-
-async function getAuthUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
   try {
-    const user = await getAuthUser();
-    if (!user) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const ctx = await requireAdminTenantContext();
 
     const { id } = await params;
-    const envios = await listarEnvios(id, user.id);
+    const envios = await listarEnvios(id, ctx.empresa.id);
 
     if (!envios) {
       return NextResponse.json({ message: "Pesquisa não encontrada." }, { status: 404 });
@@ -27,6 +18,15 @@ export async function GET(_req: Request, { params }: Params) {
 
     return NextResponse.json({ envios }, { status: 200 });
   } catch (error) {
-    return createErrorResponse({ error, message: "Falha ao listar envios." });
+    return createErrorResponse({
+      error,
+      message: "Falha ao listar envios.",
+      statusRules: [
+        { includes: "Sessão inválida", status: 401 },
+        { includes: "sem empresa", status: 403 },
+        { includes: "desativada", status: 403 },
+        { includes: "Acesso negado", status: 403 },
+      ],
+    });
   }
 }

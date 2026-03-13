@@ -5,6 +5,7 @@ export interface Pesquisa {
   titulo: string;
   descricao?: string | null;
   status: PesquisaStatus;
+  empresaId: string;
   profileId: string;
   criadaEm: Date;
   atualizadaEm: Date;

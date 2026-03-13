@@ -46,25 +46,30 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="mt-6 space-y-5">
           <div>
-            <label className="field-label">E-mail</label>
+            <label htmlFor="email" className="field-label">E-mail</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="field-control"
+              autoComplete="email"
+              inputMode="email"
+              className="field-control block min-h-11"
               placeholder="email@empresa.com"
             />
           </div>
 
           <div>
-            <label className="field-label">Senha</label>
+            <label htmlFor="password" className="field-label">Senha</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="field-control"
+              autoComplete="current-password"
+              className="field-control block min-h-11"
               placeholder="Sua senha"
             />
           </div>
