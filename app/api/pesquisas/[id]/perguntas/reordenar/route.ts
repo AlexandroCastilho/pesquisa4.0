@@ -3,9 +3,10 @@ import { z } from "zod";
 import { createErrorResponse } from "@/lib/api-error";
 import { requireAdminTenantContext, assertCanManagePesquisa } from "@/lib/auth-context";
 import { getPrismaClient } from "@/lib/prisma";
-import { buscarPesquisa } from "@/services/pesquisa.service";
+import { buscarPesquisa, type PesquisaDetalhe } from "@/services/pesquisa.service";
 
 type Params = { params: Promise<{ id: string }> };
+type PerguntaDaPesquisa = PesquisaDetalhe["perguntas"][number];
 
 const reorderSchema = z
   .object({
@@ -25,7 +26,7 @@ export async function PATCH(request: Request, { params }: Params) {
     const body = await request.json();
     const data = reorderSchema.parse(body);
 
-    const perguntaIds = new Set(pesquisa.perguntas.map((p) => p.id));
+    const perguntaIds = new Set(pesquisa.perguntas.map((p: PerguntaDaPesquisa) => p.id));
     const orderedIds = data.orderedIds;
 
     if (orderedIds.some((id) => !perguntaIds.has(id))) {

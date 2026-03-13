@@ -1,7 +1,20 @@
+import { Prisma } from "@prisma/client";
 import { getPrismaClient } from "@/lib/prisma";
 import type { PesquisaInput } from "@/lib/validation/pesquisa";
+import type { PesquisaComContagem } from "@/types/pesquisa";
 
-export async function listarPesquisas(empresaId: string) {
+export type PesquisaDetalhe = Prisma.PesquisaGetPayload<{
+  include: {
+    perguntas: {
+      include: {
+        opcoes: true;
+      };
+    };
+    _count: { select: { envios: true } };
+  };
+}>;
+
+export async function listarPesquisas(empresaId: string): Promise<PesquisaComContagem[]> {
   const prisma = getPrismaClient();
 
   return prisma.pesquisa.findMany({
@@ -13,7 +26,10 @@ export async function listarPesquisas(empresaId: string) {
   });
 }
 
-export async function buscarPesquisa(id: string, empresaId: string) {
+export async function buscarPesquisa(
+  id: string,
+  empresaId: string
+): Promise<PesquisaDetalhe | null> {
   const prisma = getPrismaClient();
 
   return prisma.pesquisa.findFirst({

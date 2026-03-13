@@ -1,7 +1,7 @@
 import { getPrismaClient } from "@/lib/prisma";
-import type { AdminCompanySummary } from "@/types/admin-user";
+import type { AdminCompanySummary, AdminUser } from "@/types/admin-user";
 
-export async function listarUsuariosDaEmpresa(empresaId: string) {
+export async function listarUsuariosDaEmpresa(empresaId: string): Promise<AdminUser[]> {
   const prisma = getPrismaClient();
 
   return prisma.profile.findMany({

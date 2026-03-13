@@ -1,5 +1,6 @@
 import { getPrismaClient } from "@/lib/prisma";
 import type { DisparoInput } from "@/lib/validation/pesquisa";
+import type { Envio } from "@/types/envio";
 
 export const MAX_TENTATIVAS_ENVIO = 3;
 
@@ -32,7 +33,10 @@ function getPrismaCompat() {
   return getPrismaClient() as any;
 }
 
-export async function listarEnvios(pesquisaId: string, empresaId: string) {
+export async function listarEnvios(
+  pesquisaId: string,
+  empresaId: string
+): Promise<Envio[] | null> {
   const prisma = getPrismaCompat();
 
   const pesquisa = await prisma.pesquisa.findFirst({
