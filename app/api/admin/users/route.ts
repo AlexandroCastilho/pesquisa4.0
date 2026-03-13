@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createErrorResponse } from "@/lib/api-error";
 import { requireAdminTenantContext, assertCanManageUsers } from "@/lib/auth-context";
-import { listarUsuariosDaEmpresa } from "@/services/admin-user.service";
+import { listarUsuariosDaEmpresa } from "@/services/admin/admin-governance.service";
 
 export async function GET() {
   try {

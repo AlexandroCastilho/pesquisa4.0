@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createErrorResponse } from "@/lib/api-error";
 import { cadastroSchema } from "@/lib/validation/auth";
-import { getPrismaClient } from "@/lib/prisma";
+import { ensureTenantBootstrap } from "@/lib/auth/tenant-bootstrap.service";
 
 export async function POST(request: Request) {
   try {
@@ -36,41 +36,10 @@ export async function POST(request: Request) {
     }
 
     if (data.user) {
-      const authUser = data.user;
-      const prisma = getPrismaClient();
-      const baseSlug = company
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 40);
-
-      await prisma.$transaction(async (tx) => {
-        const empresa = await tx.empresa.create({
-          data: {
-            nome: company,
-            slug: `${baseSlug || "empresa"}-${authUser.id.slice(0, 6)}`,
-          },
-        });
-
-        await tx.profile.upsert({
-          where: { id: authUser.id },
-          update: {
-            name,
-            company,
-            empresaId: empresa.id,
-            role: "OWNER",
-            ativo: true,
-          },
-          create: {
-            id: authUser.id,
-            name,
-            company,
-            empresaId: empresa.id,
-            role: "OWNER",
-            ativo: true,
-          },
-        });
+      await ensureTenantBootstrap({
+        user: data.user,
+        preferredName: name,
+        preferredCompany: company,
       });
     }
 

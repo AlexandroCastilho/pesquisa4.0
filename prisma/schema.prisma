@@ -42,6 +42,7 @@ model Pesquisa {
   perguntas    Pergunta[]
   envios       Envio[]
   disparoJobs  DisparoJob[]
+  importacoesDestinatarios ImportacaoDestinatariosLote[]
   criadaEm     DateTime       @default(now()) @map("criada_em")
   atualizadaEm DateTime       @updatedAt @map("atualizada_em")
 
@@ -95,6 +96,10 @@ model Envio {
   email        String
   token        String      @unique @default(cuid())
   status       EnvioStatus @default(PENDENTE)
+  tentativas   Int         @default(0)
+  ultimaTentativaEm DateTime? @map("ultima_tentativa_em")
+  proximoRetryEm DateTime? @map("proximo_retry_em")
+  erroCodigo   String?     @map("erro_codigo")
   enviadoEm    DateTime?   @map("enviado_em")
   respondidoEm DateTime?   @map("respondido_em")
   expiraEm     DateTime?   @map("expira_em")
@@ -102,6 +107,7 @@ model Envio {
   resposta     Resposta?
   criadoEm     DateTime    @default(now()) @map("criado_em")
 
+  @@index([jobId, status, proximoRetryEm])
   @@map("envios")
 }
 
@@ -176,8 +182,30 @@ model Empresa {
   profiles     Profile[]
   pesquisas    Pesquisa[]
   disparoJobs  DisparoJob[]
+  importacoesDestinatarios ImportacaoDestinatariosLote[]
   criadaEm     DateTime   @default(now()) @map("criada_em")
   atualizadaEm DateTime   @updatedAt @map("atualizada_em")
 
   @@map("empresas")
+}
+
+model ImportacaoDestinatariosLote {
+  id         String   @id @default(cuid())
+  pesquisaId String   @map("pesquisa_id")
+  pesquisa   Pesquisa @relation(fields: [pesquisaId], references: [id], onDelete: Cascade)
+  empresaId  String   @map("empresa_id")
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  profileId  String?  @map("profile_id")
+  formato    String
+  nomeArquivo String? @map("nome_arquivo")
+  totalLinhas Int     @map("total_linhas")
+  validos    Int
+  invalidos  Int
+  duplicados Int
+  rejeicoes  Json?
+  criadaEm   DateTime @default(now()) @map("criada_em")
+
+  @@index([pesquisaId, criadaEm])
+  @@index([empresaId, criadaEm])
+  @@map("importacao_destinatarios_lotes")
 }

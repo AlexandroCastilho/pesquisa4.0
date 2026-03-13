@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Alert } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,9 +43,10 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
-      <div className="w-full max-w-md app-card p-8">
-        <h1 className="page-title">Entrar</h1>
-        <p className="page-subtitle">Acesse sua conta</p>
+      <div className="w-full max-w-md app-card p-8 relative overflow-hidden">
+        <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[var(--accent)]" />
+        <h1 className="page-title relative">Entrar</h1>
+        <p className="page-subtitle relative">Acesse sua conta e continue acompanhando suas pesquisas.</p>
 
         <form onSubmit={handleLogin} className="mt-6 space-y-5">
           <div>
@@ -75,7 +77,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <Alert tone="error">{error}</Alert>}
 
           <button
             type="submit"

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createErrorResponse } from "@/lib/api-error";
 import { loginSchema } from "@/lib/validation/auth";
-import { getPrismaClient } from "@/lib/prisma";
-import { z } from "zod";
+import { ensureTenantBootstrap } from "@/lib/auth/tenant-bootstrap.service";
 
 function mapLoginError(detail: string) {
   const normalized = detail.toLowerCase();
@@ -47,61 +47,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Garante que o perfil existe no banco (criado no primeiro login)
     if (data.user) {
-      const prisma = getPrismaClient();
-      const metadataName = data.user.user_metadata?.name ?? null;
-      const metadataCompany = data.user.user_metadata?.company ?? null;
+      const { profile } = await ensureTenantBootstrap({ user: data.user });
 
-      await prisma.$transaction(async (tx) => {
-        const existingProfile = await tx.profile.findUnique({
-          where: { id: data.user!.id },
-          include: { empresa: true },
-        });
-
-        if (existingProfile?.empresaId) {
-          return;
-        }
-
-        const companyBase = (metadataCompany ?? metadataName ?? "Empresa")
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-          .slice(0, 40);
-
-        const empresa = await tx.empresa.create({
-          data: {
-            nome: metadataCompany ?? metadataName ?? `Empresa ${data.user!.id.slice(0, 6)}`,
-            slug: `${companyBase || "empresa"}-${data.user!.id.slice(0, 6)}`,
-          },
-        });
-
-        await tx.profile.upsert({
-          where: { id: data.user!.id },
-          update: {
-            name: metadataName,
-            company: metadataCompany,
-            empresaId: empresa.id,
-            ativo: true,
-          },
-          create: {
-            id: data.user!.id,
-            name: metadataName,
-            company: metadataCompany,
-            empresaId: empresa.id,
-            role: "OWNER",
-            ativo: true,
-          },
-        });
-      });
-
-      const profile = await prisma.profile.findUnique({
-        where: { id: data.user.id },
-        select: { ativo: true },
-      });
-
-      if (profile && !profile.ativo) {
+      if (!profile.ativo) {
         await supabase.auth.signOut();
         return NextResponse.json(
           {

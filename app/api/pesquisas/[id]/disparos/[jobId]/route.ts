@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createErrorResponse } from "@/lib/api-error";
 import { requireAdminTenantContext } from "@/lib/auth-context";
 import { obterProgressoDisparoJob } from "@/services/envio.service";
+import { acionarProcessamentoDisparo } from "@/services/disparo-job-processor.service";
 
 type Params = { params: Promise<{ id: string; jobId: string }> };
 
@@ -11,16 +12,18 @@ export async function GET(request: Request, { params }: Params) {
     const { id: pesquisaId, jobId } = await params;
 
     const { searchParams } = new URL(request.url);
-    const processar = searchParams.get("processar") !== "0";
+    const processar = searchParams.get("processar") === "1";
     const batchSizeRaw = Number(searchParams.get("batchSize") ?? "10");
     const batchSize = Number.isFinite(batchSizeRaw)
       ? Math.max(1, Math.min(50, Math.floor(batchSizeRaw)))
       : 10;
 
-    const progresso = await obterProgressoDisparoJob(pesquisaId, jobId, ctx.empresa.id, {
-      processar,
-      batchSize,
-    });
+    const progresso = processar
+      ? await acionarProcessamentoDisparo(pesquisaId, jobId, ctx.empresa.id, {
+          ciclos: 1,
+          batchSize,
+        })
+      : await obterProgressoDisparoJob(pesquisaId, jobId, ctx.empresa.id);
 
     return NextResponse.json({ progresso }, { status: 200 });
   } catch (error) {

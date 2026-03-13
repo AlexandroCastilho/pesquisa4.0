@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Envio } from "@/types/envio";
 import type { DisparoJob } from "@/types/disparo-job";
+import type {
+  DestinatarioImportado,
+  ImportacaoDestinatariosLote,
+  ResumoImportacao,
+} from "@/types/importacao-destinatarios";
 import { BadgeEnvioStatus } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
 
 type Props = {
   pesquisaId: string;
@@ -38,6 +44,18 @@ type ProgressoResponse = {
   progresso?: DisparoJob;
 };
 
+type ImportacaoResponse = {
+  destinatarios?: DestinatarioImportado[];
+  resumo?: ResumoImportacao;
+  lote?: ImportacaoDestinatariosLote | null;
+  message?: string;
+  detail?: string;
+};
+
+type ImportacoesResponse = {
+  importacoes?: ImportacaoDestinatariosLote[];
+};
+
 function toTimeValue(dateInput?: string | Date | null) {
   if (!dateInput) return 0;
   const time = new Date(dateInput).getTime();
@@ -50,100 +68,6 @@ function sortEnviosByRecent(items: Envio[]) {
     const bTime = toTimeValue(b.criadoEm) || toTimeValue(b.enviadoEm);
     return bTime - aTime;
   });
-}
-
-function normalizeHeader(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function parseCsvLine(line: string, separator: "," | ";") {
-  const out: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-
-    if (ch === '"') {
-      const next = line[i + 1];
-      if (inQuotes && next === '"') {
-        current += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (!inQuotes && ch === separator) {
-      out.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += ch;
-  }
-
-  out.push(current.trim());
-  return out;
-}
-
-function parseCsvDestinatarios(csvRaw: string) {
-  const lines = csvRaw
-    .replace(/\r/g, "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (lines.length === 0) {
-    return { destinatarios: [] as Destinatario[], ignoradas: 0, erro: "Arquivo CSV vazio." };
-  }
-
-  const separator: "," | ";" =
-    lines[0].includes(";") && !lines[0].includes(",") ? ";" : ",";
-
-  const headers = parseCsvLine(lines[0], separator).map(normalizeHeader);
-  const nomeIndex = headers.findIndex((h) => h === "nome" || h === "cliente");
-  const emailIndex = headers.findIndex((h) => h === "email");
-
-  if (nomeIndex < 0 || emailIndex < 0) {
-    return {
-      destinatarios: [] as Destinatario[],
-      ignoradas: Math.max(0, lines.length - 1),
-      erro: "Cabeçalho inválido. Use nome,email (ou Nome,E-mail / cliente,email).",
-    };
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const seenEmails = new Set<string>();
-  const destinatarios: Destinatario[] = [];
-  let ignoradas = 0;
-
-  for (let i = 1; i < lines.length; i += 1) {
-    const cols = parseCsvLine(lines[i], separator);
-    const nome = (cols[nomeIndex] ?? "").trim();
-    const emailOriginal = (cols[emailIndex] ?? "").trim().toLowerCase();
-
-    if (!nome || !emailOriginal || !emailRegex.test(emailOriginal)) {
-      ignoradas += 1;
-      continue;
-    }
-
-    if (seenEmails.has(emailOriginal)) {
-      ignoradas += 1;
-      continue;
-    }
-
-    seenEmails.add(emailOriginal);
-    destinatarios.push({ nome, email: emailOriginal });
-  }
-
-  return { destinatarios, ignoradas, erro: "" };
 }
 
 function formatDateTime(value?: string | Date | null) {
@@ -169,6 +93,9 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [csvMsg, setCsvMsg] = useState("");
+  const [importacoes, setImportacoes] = useState<ImportacaoDestinatariosLote[]>([]);
+  const [buscaEnvio, setBuscaEnvio] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState<"TODOS" | Envio["status"]>("TODOS");
   const [jobAtivoId, setJobAtivoId] = useState<string | null>(null);
   const [progresso, setProgresso] = useState<DisparoJob | null>(null);
 
@@ -177,12 +104,25 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
   const totalPendentes = envios.filter((e) => e.status === "PENDENTE" || e.status === "PROCESSANDO").length;
   const totalErro = envios.filter((e) => e.status === "ERRO").length;
   const taxaResposta = totalEnviados > 0 ? (totalRespondidos / totalEnviados) * 100 : 0;
+  const enviosFiltrados = envios.filter((e) => {
+    const termo = buscaEnvio.trim().toLowerCase();
+    const buscaMatch = termo.length === 0 || e.nome.toLowerCase().includes(termo) || e.email.toLowerCase().includes(termo);
+    const statusMatch = statusFiltro === "TODOS" || e.status === statusFiltro;
+    return buscaMatch && statusMatch;
+  });
 
   const recarregarEnvios = useCallback(async () => {
     const listRes = await fetch(`/api/pesquisas/${pesquisaId}/envios`);
     if (!listRes.ok) return;
     const listData = (await listRes.json()) as { envios?: Envio[] };
     setEnvios(sortEnviosByRecent(listData.envios ?? []));
+  }, [pesquisaId]);
+
+  const recarregarImportacoes = useCallback(async () => {
+    const res = await fetch(`/api/pesquisas/${pesquisaId}/importacoes`);
+    if (!res.ok) return;
+    const data = (await res.json()) as ImportacoesResponse;
+    setImportacoes(data.importacoes ?? []);
   }, [pesquisaId]);
 
   useEffect(() => {
@@ -213,16 +153,19 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
   }, [pesquisaId]);
 
   useEffect(() => {
+    void recarregarImportacoes();
+  }, [recarregarImportacoes]);
+
+  useEffect(() => {
     if (!jobAtivoId) return;
 
     let ativo = true;
     let intervalId: ReturnType<typeof setInterval> | null = null;
+    let ticks = 0;
 
     const tick = async () => {
       try {
-        const res = await fetch(
-          `/api/pesquisas/${pesquisaId}/disparos/${jobAtivoId}?processar=1&batchSize=10`
-        );
+        const res = await fetch(`/api/pesquisas/${pesquisaId}/disparos/${jobAtivoId}`);
         if (!res.ok) return;
 
         const data = (await res.json()) as ProgressoResponse;
@@ -230,6 +173,19 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
 
         setProgresso(data.progresso);
         await recarregarEnvios();
+
+        ticks += 1;
+
+        const podeAcionarProcessamento =
+          data.progresso.emAndamento &&
+          (data.progresso.pendentes > 0 || data.progresso.retriesProntos > 0);
+
+        if (podeAcionarProcessamento && ticks % 3 === 1) {
+          void fetch(
+            `/api/pesquisas/${pesquisaId}/disparos/${jobAtivoId}/processar?batchSize=20&ciclos=1`,
+            { method: "POST" }
+          );
+        }
 
         if (!data.progresso.emAndamento) {
           setJobAtivoId(null);
@@ -260,35 +216,65 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
       reader.readAsText(file, "utf-8");
     });
 
-    const parsed = parseCsvDestinatarios(text);
+    const formato = "CSV_SIMPLE";
 
-    if (parsed.erro) {
-      setError(parsed.erro);
+    const res = await fetch(`/api/pesquisas/${pesquisaId}/importacoes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        formato,
+        nomeArquivo: file.name,
+        conteudo: text,
+        acao: "IMPORTAR",
+      }),
+    });
+
+    const data = (await res.json()) as ImportacaoResponse;
+
+    if (!res.ok) {
+      setError(data.detail ?? data.message ?? "Falha ao importar destinatários.");
       setCsvMsg("");
       return;
     }
 
-    if (parsed.destinatarios.length === 0) {
-      setError("Nenhuma linha válida encontrada no CSV.");
-      setCsvMsg(`0 linha(s) importada(s). ${parsed.ignoradas} ignorada(s).`);
+    const destinatariosImportados = data.destinatarios ?? [];
+    const resumo = data.resumo;
+
+    if (!resumo) {
+      setError("Resposta de importação inválida.");
+      setCsvMsg("");
       return;
     }
 
     setError("");
-    setDestinatarios(parsed.destinatarios);
+    setDestinatarios(destinatariosImportados);
+
+    const motivos = resumo.rejeicoes
+      .slice(0, 3)
+      .map((r) => r.motivo)
+      .join(", ");
+
     setCsvMsg(
-      `${parsed.destinatarios.length} linha(s) válida(s) importada(s). ${parsed.ignoradas} ignorada(s).`
+      `Total: ${resumo.total} · Válidos: ${resumo.validos} · Inválidos: ${resumo.invalidos} · Duplicados: ${resumo.duplicados}` +
+        (motivos ? ` · Motivos: ${motivos}` : "")
     );
+
+    await recarregarImportacoes();
   }
 
-  function downloadCsvModel() {
-    const content =
-      "nome,email\nJoão Silva,joao@email.com\nMaria Souza,maria@email.com\n";
+  async function downloadCsvModel() {
+    const res = await fetch(`/api/pesquisas/${pesquisaId}/importacoes/modelo`);
+    if (!res.ok) {
+      setError("Não foi possível baixar o modelo oficial de importação.");
+      return;
+    }
+
+    const content = await res.text();
     const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "modelo-clientes.csv";
+    anchor.download = "modelo-oficial-destinatarios.csv";
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -322,6 +308,15 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
       return;
     }
 
+    const confirmacao = confirm(
+      `Confirmar disparo para ${destsFiltrados.length} destinatário(s) com expiração em ${expiraDias} dia(s)?`
+    );
+
+    if (!confirmacao) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/pesquisas/${pesquisaId}/disparar`, {
         method: "POST",
@@ -348,11 +343,17 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
         enviados: data.lote.job.enviados,
         erros: data.lote.job.erros,
         pendentes: Math.max(0, data.lote.job.total - data.lote.job.processados),
+        emProcessamento: data.lote.job.status === "PROCESSANDO" ? 1 : 0,
+        retriesPendentes: 0,
+        retriesProntos: 0,
         percentual:
           data.lote.job.total > 0
             ? Math.round((data.lote.job.processados / data.lote.job.total) * 100)
             : 100,
         emAndamento: data.lote.job.status === "PENDENTE" || data.lote.job.status === "PROCESSANDO",
+        proximoRetryEm: null,
+        lockAt: null,
+        ultimoErro: null,
         criadoEm: data.lote.job.criadoEm,
         iniciadoEm: data.lote.job.iniciadoEm,
         finalizadoEm: data.lote.job.finalizadoEm,
@@ -384,6 +385,8 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
           <p className="text-sm text-[var(--foreground)]">Formato esperado do CSV: nome,email</p>
           <p className="text-xs text-[var(--muted-foreground)]">João Silva,joao@email.com</p>
           <p className="text-xs text-[var(--muted-foreground)]">Maria Souza,maria@email.com</p>
+          <p className="text-xs text-[var(--muted-foreground)]">Aceita aliases: nome/cliente/razao social e email/e-mail/email principal</p>
+          <p className="text-xs text-[var(--muted-foreground)]">Importação disponível para CSV UTF-8.</p>
 
           <div className="flex flex-wrap items-center gap-3">
             <input
@@ -395,9 +398,9 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
                 e.currentTarget.value = "";
                 if (!file) return;
                 try {
-                  await handleImportCsv(file);
+                    await handleImportCsv(file);
                 } catch {
-                  setError("Não foi possível ler o arquivo CSV.");
+                  setError("Não foi possível ler/importar o arquivo.");
                 }
               }}
               className="block w-full max-w-xs text-sm text-[var(--muted-foreground)] file:mr-4 file:rounded-xl file:border-0 file:bg-[var(--primary)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:brightness-95 disabled:opacity-60"
@@ -412,7 +415,7 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
             </button>
           </div>
 
-          {csvMsg && <p className="text-sm text-[var(--success)]">{csvMsg}</p>}
+          {csvMsg && <Alert tone="success">{csvMsg}</Alert>}
         </div>
 
         <div className="space-y-2">
@@ -475,8 +478,8 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
           <span className="text-sm text-[var(--muted-foreground)]">dias</span>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {successMsg && <p className="text-sm text-[var(--success)]">{successMsg}</p>}
+        {error && <Alert tone="error">{error}</Alert>}
+        {successMsg && <Alert tone="success">{successMsg}</Alert>}
 
         <button
           type="submit"
@@ -485,6 +488,9 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
         >
           {loading ? "Enviando..." : "Disparar pesquisa"}
         </button>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          Dica: você pode revisar o histórico de envios e retries logo abaixo sem recarregar a página.
+        </p>
       </form>
 
       <section className="app-card p-6 space-y-4">
@@ -498,15 +504,31 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
               </p>
               <p className="text-xs text-[var(--muted-foreground)]">{progresso.percentual}%</p>
             </div>
-            <div className="h-2 w-full rounded-full bg-white/80">
+            <div className="h-2.5 w-full rounded-full bg-white/90">
               <div
-                className="h-2 rounded-full bg-[var(--primary)] transition-all duration-500"
+                className="h-2.5 rounded-full bg-[var(--primary)] transition-all duration-500"
                 style={{ width: `${progresso.percentual}%` }}
               />
             </div>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Enviados: {progresso.enviados} · Erros: {progresso.erros} · Pendentes: {progresso.pendentes}
+              Enviados: {progresso.enviados} · Erros finais: {progresso.erros} · Pendentes: {progresso.pendentes} · Em processamento: {progresso.emProcessamento}
             </p>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Retries aguardando: {progresso.retriesPendentes} · Retries prontos: {progresso.retriesProntos} · Próximo retry: {formatDateTime(progresso.proximoRetryEm)}
+            </p>
+          </div>
+        )}
+
+        {importacoes.length > 0 && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4 space-y-3">
+            <p className="text-sm font-medium text-[var(--foreground)]">Histórico de importações</p>
+            <div className="space-y-2">
+              {importacoes.slice(0, 5).map((lote) => (
+                <div key={lote.id} className="text-xs text-[var(--muted-foreground)]">
+                  {formatDateTime(lote.criadaEm)} · {lote.nomeArquivo ?? "arquivo sem nome"} · {lote.formato} · Total: {lote.totalLinhas} · Válidos: {lote.validos} · Inválidos: {lote.invalidos} · Duplicados: {lote.duplicados}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -535,8 +557,33 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
           </div>
         </div>
 
+        <div className="surface-soft p-3">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3">
+            <input
+              className="field-control"
+              placeholder="Buscar por nome ou e-mail"
+              value={buscaEnvio}
+              onChange={(e) => setBuscaEnvio(e.target.value)}
+            />
+            <select className="field-control" value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value as typeof statusFiltro)}>
+              <option value="TODOS">Todos os status</option>
+              <option value="PENDENTE">Pendente</option>
+              <option value="PROCESSANDO">Processando</option>
+              <option value="ENVIADO">Enviado</option>
+              <option value="RESPONDIDO">Respondido</option>
+              <option value="EXPIRADO">Expirado</option>
+              <option value="ERRO">Erro</option>
+            </select>
+          </div>
+        </div>
+
         {envios.length === 0 ? (
           <p className="text-[var(--muted-foreground)] text-sm">Nenhum envio realizado ainda. Após o primeiro disparo, o histórico aparecerá aqui.</p>
+        ) : enviosFiltrados.length === 0 ? (
+          <div className="empty-state">
+            <p className="text-[var(--foreground)] font-semibold">Nenhum envio encontrado para os filtros</p>
+            <p className="text-sm text-[var(--muted-foreground)] mt-1">Ajuste a busca ou o status para visualizar os registros.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
             <table className="min-w-full text-sm">
@@ -547,11 +594,13 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Enviado em</th>
                   <th className="px-4 py-3 text-left">Respondido em</th>
+                  <th className="px-4 py-3 text-left">Tentativas</th>
+                  <th className="px-4 py-3 text-left">Próximo retry</th>
                   <th className="px-4 py-3 text-left">Erro</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {envios.map((e) => (
+                {enviosFiltrados.map((e) => (
                   <tr key={e.id}>
                     <td className="px-4 py-3 text-[var(--card-foreground)] font-medium whitespace-nowrap">{e.nome}</td>
                     <td className="px-4 py-3 text-[var(--muted-foreground)] whitespace-nowrap">{e.email}</td>
@@ -564,9 +613,15 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
                     <td className="px-4 py-3 text-[var(--muted-foreground)] whitespace-nowrap">
                       {formatDateTime(e.respondidoEm)}
                     </td>
+                    <td className="px-4 py-3 text-[var(--muted-foreground)] whitespace-nowrap">
+                      {e.tentativas}
+                    </td>
+                    <td className="px-4 py-3 text-[var(--muted-foreground)] whitespace-nowrap">
+                      {formatDateTime(e.proximoRetryEm)}
+                    </td>
                     <td className="px-4 py-3 text-[var(--muted-foreground)] max-w-xs">
                       <span className="block break-words" title={e.erroMsg ?? ""}>
-                        {e.erroMsg ?? "—"}
+                        {e.erroCodigo ? `${e.erroCodigo}: ${e.erroMsg ?? ""}` : e.erroMsg ?? "—"}
                       </span>
                     </td>
                   </tr>

@@ -26,11 +26,11 @@ export default async function DashboardPage() {
     totalEnvios > 0 ? Math.round((respondidos / totalEnvios) * 100) : 0;
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="space-y-6">
+      <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Visão geral do sistema de pesquisas.</p>
+          <p className="page-subtitle">Visão consolidada das pesquisas e engajamento de respostas.</p>
         </div>
 
         <Link href="/pesquisas/nova" className="btn-primary">
@@ -38,21 +38,58 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-        <StatCard label="Pesquisas" value={totalPesquisas} />
-        <StatCard label="Envios" value={totalEnvios} />
-        <StatCard label="Respondidos" value={respondidos} />
-        <StatCard label="Taxa de resposta" value={`${taxaResposta}%`} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5">
+        <StatCard label="Pesquisas" value={totalPesquisas} tone="primary" />
+        <StatCard label="Envios" value={totalEnvios} tone="neutral" />
+        <StatCard label="Respondidos" value={respondidos} tone="success" />
+        <StatCard label="Taxa de resposta" value={`${taxaResposta}%`} tone="warning" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
+        <div className="app-card p-5 lg:p-6 lg:col-span-2">
+          <p className="text-sm text-[var(--muted-foreground)]">Ações rápidas</p>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link href="/pesquisas/nova" className="btn-primary justify-center">Criar pesquisa</Link>
+            <Link href="/pesquisas" className="btn-secondary justify-center">Ver pesquisas</Link>
+            <Link href="/dashboard" className="btn-ghost justify-center">Atualizar visão</Link>
+          </div>
+        </div>
+
+        <div className="app-card p-5 lg:p-6">
+          <p className="text-sm text-[var(--muted-foreground)]">Resumo de performance</p>
+          <div className="mt-3 space-y-2 text-sm">
+            <p className="text-[var(--foreground)]">Envios sem resposta: <strong>{Math.max(totalEnvios - respondidos, 0)}</strong></p>
+            <p className="text-[var(--foreground)]">Meta sugerida de taxa: <strong>60%</strong></p>
+          </div>
+          <div className="mt-4 h-2 w-full rounded-full bg-[var(--muted)] overflow-hidden">
+            <div className="h-2 rounded-full bg-[var(--primary)]" style={{ width: `${Math.min(taxaResposta, 100)}%` }} />
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string | number;
+  tone: "primary" | "neutral" | "success" | "warning";
+}) {
+  const toneClass = {
+    primary: "border-[color:var(--primary)]/25",
+    neutral: "",
+    success: "border-emerald-200",
+    warning: "border-amber-200",
+  }[tone];
+
   return (
-    <div className="app-card p-6 app-card-hover">
+    <div className={`app-card app-card-hover kpi-card p-5 lg:p-6 ${toneClass}`}>
       <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-[var(--card-foreground)]">{value}</p>
+      <p className="mt-1 text-3xl font-bold text-[var(--card-foreground)]">{value}</p>
     </div>
   );
 }

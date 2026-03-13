@@ -1,11 +1,9 @@
 import { getPrismaClient } from "@/lib/prisma";
-import { sendEmail, buildPesquisaEmailHtml } from "@/services/email.service";
 import type { DisparoInput } from "@/lib/validation/pesquisa";
-import { randomUUID } from "node:crypto";
 
-const JOB_LOCK_TTL_MS = 60_000;
+export const MAX_TENTATIVAS_ENVIO = 3;
 
-type JobResumo = {
+export type JobResumo = {
   id: string;
   status: "PENDENTE" | "PROCESSANDO" | "CONCLUIDO" | "ERRO";
   total: number;
@@ -15,18 +13,28 @@ type JobResumo = {
   criadoEm: Date;
   iniciadoEm: Date | null;
   finalizadoEm: Date | null;
+  ultimoErro: string | null;
+  lockAt: Date | null;
 };
 
-type JobProgresso = JobResumo & {
+export type JobProgresso = JobResumo & {
   pendentes: number;
+  emProcessamento: number;
+  retriesPendentes: number;
+  retriesProntos: number;
   percentual: number;
   emAndamento: boolean;
+  proximoRetryEm: Date | null;
 };
 
-export async function listarEnvios(pesquisaId: string, empresaId: string) {
-  const prisma = getPrismaClient();
+function getPrismaCompat() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return getPrismaClient() as any;
+}
 
-  // Garante que a pesquisa pertence à empresa
+export async function listarEnvios(pesquisaId: string, empresaId: string) {
+  const prisma = getPrismaCompat();
+
   const pesquisa = await prisma.pesquisa.findFirst({
     where: { id: pesquisaId, empresaId },
     select: { id: true },
@@ -40,7 +48,7 @@ export async function listarEnvios(pesquisaId: string, empresaId: string) {
   });
 }
 
-function getAppUrlBase() {
+export function getAppUrlBase() {
   const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const appUrl = rawAppUrl.trim().replace(/\/+$/, "");
 
@@ -74,8 +82,8 @@ function normalizeDestinatarios(destinatarios: DisparoInput["destinatarios"]) {
   return Array.from(uniqueByEmail.values());
 }
 
-async function getPesquisaDoTenant(pesquisaId: string, empresaId: string) {
-  const prisma = getPrismaClient();
+export async function getPesquisaDoTenant(pesquisaId: string, empresaId: string) {
+  const prisma = getPrismaCompat();
   const pesquisa = await prisma.pesquisa.findFirst({
     where: { id: pesquisaId, empresaId },
     select: { id: true, titulo: true, empresaId: true },
@@ -88,30 +96,89 @@ async function getPesquisaDoTenant(pesquisaId: string, empresaId: string) {
   return pesquisa;
 }
 
-async function calcularProgressoJob(jobId: string) {
-  const prisma = getPrismaClient();
-
-  const [job, total, pendentes, enviados, erros] = await Promise.all([
-    prisma.disparoJob.findUnique({ where: { id: jobId } }),
-    prisma.envio.count({ where: { jobId } }),
-    prisma.envio.count({ where: { jobId, status: { in: ["PENDENTE", "PROCESSANDO"] } } }),
-    prisma.envio.count({ where: { jobId, status: { in: ["ENVIADO", "RESPONDIDO", "EXPIRADO"] } } }),
-    prisma.envio.count({ where: { jobId, status: "ERRO" } }),
-  ]);
+async function getJobDoTenant(pesquisaId: string, jobId: string, empresaId: string) {
+  const prisma = getPrismaCompat();
+  const job = await prisma.disparoJob.findFirst({
+    where: { id: jobId, pesquisaId, empresaId },
+    select: { id: true },
+  });
 
   if (!job) {
     throw new Error("Lote de disparo não encontrado.");
   }
 
-  const processados = enviados + erros;
-  const percentual = total > 0 ? Math.round((processados / total) * 100) : 100;
-  const finalizado = pendentes === 0;
+  return job;
+}
 
-  const status: JobResumo["status"] = finalizado
-    ? enviados > 0
+export async function calcularProgressoJob(jobId: string): Promise<JobProgresso> {
+  const prisma = getPrismaCompat();
+  const now = new Date();
+
+  const [job, total, pendentes, emProcessamento, enviados, retriesPendentes, retriesProntos, errosFinais, minProximoRetry] =
+    await Promise.all([
+      prisma.disparoJob.findUnique({ where: { id: jobId } }),
+      prisma.envio.count({ where: { jobId } }),
+      prisma.envio.count({ where: { jobId, status: "PENDENTE" } }),
+      prisma.envio.count({ where: { jobId, status: "PROCESSANDO" } }),
+      prisma.envio.count({ where: { jobId, status: { in: ["ENVIADO", "RESPONDIDO", "EXPIRADO"] } } }),
+      prisma.envio.count({
+        where: {
+          jobId,
+          status: "ERRO",
+          tentativas: { lt: MAX_TENTATIVAS_ENVIO },
+          proximoRetryEm: { gt: now },
+        },
+      }),
+      prisma.envio.count({
+        where: {
+          jobId,
+          status: "ERRO",
+          tentativas: { lt: MAX_TENTATIVAS_ENVIO },
+          OR: [{ proximoRetryEm: null }, { proximoRetryEm: { lte: now } }],
+        },
+      }),
+      prisma.envio.count({
+        where: {
+          jobId,
+          status: "ERRO",
+          OR: [
+            { tentativas: { gte: MAX_TENTATIVAS_ENVIO } },
+            {
+              AND: [
+                { tentativas: { lt: MAX_TENTATIVAS_ENVIO } },
+                { proximoRetryEm: null },
+              ],
+            },
+          ],
+        },
+      }),
+      prisma.envio.aggregate({
+        where: {
+          jobId,
+          status: "ERRO",
+          tentativas: { lt: MAX_TENTATIVAS_ENVIO },
+          proximoRetryEm: { gt: now },
+        },
+        _min: { proximoRetryEm: true },
+      }),
+    ]);
+
+  if (!job) {
+    throw new Error("Lote de disparo não encontrado.");
+  }
+
+  const processados = enviados + errosFinais;
+  const trabalhoRestante = pendentes + emProcessamento + retriesPendentes + retriesProntos;
+  const emAndamento = trabalhoRestante > 0;
+  const percentual = total > 0 ? Math.round((processados / total) * 100) : 100;
+
+  const status: JobResumo["status"] = emAndamento
+    ? emProcessamento > 0
+      ? "PROCESSANDO"
+      : "PENDENTE"
+    : enviados > 0
       ? "CONCLUIDO"
-      : "ERRO"
-    : "PROCESSANDO";
+      : "ERRO";
 
   const updated = await prisma.disparoJob.update({
     where: { id: jobId },
@@ -120,10 +187,9 @@ async function calcularProgressoJob(jobId: string) {
       total,
       processados,
       enviados,
-      erros,
-      finalizadoEm: finalizado ? job.finalizadoEm ?? new Date() : null,
-      lockAt: null,
-      lockToken: null,
+      erros: errosFinais,
+      finalizadoEm: emAndamento ? null : job.finalizadoEm ?? now,
+      ...(emAndamento ? {} : { lockAt: null, lockToken: null }),
     },
     select: {
       id: true,
@@ -135,15 +201,21 @@ async function calcularProgressoJob(jobId: string) {
       criadoEm: true,
       iniciadoEm: true,
       finalizadoEm: true,
+      ultimoErro: true,
+      lockAt: true,
     },
   });
 
   return {
     ...updated,
     pendentes,
+    emProcessamento,
+    retriesPendentes,
+    retriesProntos,
     percentual,
-    emAndamento: updated.status === "PENDENTE" || updated.status === "PROCESSANDO",
-  } as JobProgresso;
+    emAndamento,
+    proximoRetryEm: minProximoRetry._min.proximoRetryEm,
+  };
 }
 
 export async function criarDisparoJob(
@@ -151,7 +223,7 @@ export async function criarDisparoJob(
   empresaId: string,
   input: DisparoInput
 ) {
-  const prisma = getPrismaClient();
+  const prisma = getPrismaCompat();
   await getPesquisaDoTenant(pesquisaId, empresaId);
 
   const expiraEm = new Date(
@@ -171,7 +243,11 @@ export async function criarDisparoJob(
       })
     : [];
 
-  const bloqueados = new Set(jaAtivos.map((item) => item.email.toLowerCase()));
+  const bloqueados = new Set(
+    (jaAtivos as Array<{ email: string }>).map((item: { email: string }) =>
+      item.email.toLowerCase()
+    )
+  );
   const destinatariosParaCriar = destinatariosUnicos.filter(
     (dest) => !bloqueados.has(dest.email.toLowerCase())
   );
@@ -197,6 +273,8 @@ export async function criarDisparoJob(
       criadoEm: true,
       iniciadoEm: true,
       finalizadoEm: true,
+      ultimoErro: true,
+      lockAt: true,
     },
   });
 
@@ -209,6 +287,7 @@ export async function criarDisparoJob(
         email: dest.email,
         expiraEm,
         status: "PENDENTE",
+        tentativas: 0,
       })),
     });
   }
@@ -222,146 +301,18 @@ export async function criarDisparoJob(
   };
 }
 
-export async function processarDisparoJob(
-  pesquisaId: string,
-  jobId: string,
-  empresaId: string,
-  batchSize = 10
-) {
-  const prisma = getPrismaClient();
-  const appUrl = getAppUrlBase();
-
-  const job = await prisma.disparoJob.findFirst({
-    where: { id: jobId, pesquisaId, empresaId },
-    select: {
-      id: true,
-      status: true,
-      lockAt: true,
-      iniciadoEm: true,
-      pesquisa: { select: { titulo: true } },
-    },
-  });
-
-  if (!job) {
-    throw new Error("Lote de disparo não encontrado.");
-  }
-
-  if (job.status === "CONCLUIDO" || job.status === "ERRO") {
-    return calcularProgressoJob(jobId);
-  }
-
-  const now = new Date();
-  const staleBefore = new Date(Date.now() - JOB_LOCK_TTL_MS);
-  const lockToken = randomUUID();
-
-  const lockAcquired = await prisma.disparoJob.updateMany({
-    where: {
-      id: jobId,
-      pesquisaId,
-      empresaId,
-      status: { in: ["PENDENTE", "PROCESSANDO"] },
-      OR: [{ lockAt: null }, { lockAt: { lt: staleBefore } }],
-    },
-    data: {
-      status: "PROCESSANDO",
-      lockToken,
-      lockAt: now,
-    },
-  });
-
-  if (lockAcquired.count === 0) {
-    return calcularProgressoJob(jobId);
-  }
-
-  await prisma.disparoJob.updateMany({
-    where: { id: jobId, iniciadoEm: null },
-    data: { iniciadoEm: now },
-  });
-
-  const pendentes = await prisma.envio.findMany({
-    where: { jobId, status: "PENDENTE" },
-    orderBy: { criadoEm: "asc" },
-    take: batchSize,
-    select: {
-      id: true,
-      nome: true,
-      email: true,
-      token: true,
-    },
-  });
-
-  for (const envio of pendentes) {
-    const claimed = await prisma.envio.updateMany({
-      where: { id: envio.id, status: "PENDENTE" },
-      data: { status: "PROCESSANDO", erroMsg: null },
-    });
-
-    if (claimed.count === 0) {
-      continue;
-    }
-
-    const link = `${appUrl}/responder/${envio.token}`;
-    const { subject, html, text } = buildPesquisaEmailHtml({
-      destinatarioNome: envio.nome,
-      pesquisaTitulo: job.pesquisa.titulo,
-      link,
-    });
-
-    try {
-      await sendEmail({
-        to: envio.email,
-        toName: envio.nome,
-        subject,
-        html,
-        text,
-      });
-
-      await prisma.envio.update({
-        where: { id: envio.id },
-        data: {
-          status: "ENVIADO",
-          enviadoEm: new Date(),
-          erroMsg: null,
-        },
-      });
-    } catch (error) {
-      const erroMsg = error instanceof Error ? error.message : "erro desconhecido";
-
-      await prisma.envio.update({
-        where: { id: envio.id },
-        data: {
-          status: "ERRO",
-          erroMsg,
-        },
-      });
-
-      await prisma.disparoJob.update({
-        where: { id: jobId },
-        data: { ultimoErro: erroMsg },
-      });
-    }
-  }
-
-  return calcularProgressoJob(jobId);
-}
-
 export async function obterProgressoDisparoJob(
   pesquisaId: string,
   jobId: string,
-  empresaId: string,
-  options?: { processar?: boolean; batchSize?: number }
+  empresaId: string
 ) {
   await getPesquisaDoTenant(pesquisaId, empresaId);
-
-  if (options?.processar) {
-    return processarDisparoJob(pesquisaId, jobId, empresaId, options.batchSize ?? 10);
-  }
-
+  await getJobDoTenant(pesquisaId, jobId, empresaId);
   return calcularProgressoJob(jobId);
 }
 
 export async function obterJobAtivoDaPesquisa(pesquisaId: string, empresaId: string) {
-  const prisma = getPrismaClient();
+  const prisma = getPrismaCompat();
   await getPesquisaDoTenant(pesquisaId, empresaId);
 
   const job = await prisma.disparoJob.findFirst({

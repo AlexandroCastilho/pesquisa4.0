@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { Pergunta, Opcao } from "@/types/pergunta";
+import { Alert } from "@/components/ui/alert";
 
 type PesquisaData = {
   id: string;
@@ -28,6 +29,10 @@ export default function ResponderPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const totalPerguntas = pesquisa?.perguntas.length ?? 0;
+  const totalRespondidas = Object.keys(respostas).length;
+  const faltantes = Math.max(totalPerguntas - totalRespondidas, 0);
+
   useEffect(() => {
     fetch(`/api/respostas/${token}`)
       .then(async (res) => {
@@ -46,11 +51,18 @@ export default function ResponderPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
+    setErrorMsg("");
 
     const itens = Object.entries(respostas).map(([perguntaId, v]) => ({
       perguntaId,
       ...v,
     }));
+
+    if (pesquisa && itens.length !== pesquisa.perguntas.length) {
+      setErrorMsg("Responda todas as perguntas antes de enviar.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const res = await fetch(`/api/respostas/${token}`, {
@@ -61,7 +73,7 @@ export default function ResponderPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setErrorMsg(data.message ?? "Erro ao enviar resposta.");
+        setErrorMsg(data.detail ?? data.message ?? "Erro ao enviar resposta.");
         return;
       }
 
@@ -74,15 +86,15 @@ export default function ResponderPage() {
   }
 
   if (status === "loading") {
-    return <FullPage><p className="text-[var(--muted-foreground)]">Carregando pesquisa...</p></FullPage>;
+    return <FullPage><p className="text-[var(--muted-foreground)]">Carregando formulário da pesquisa...</p></FullPage>;
   }
 
   if (status === "respondido") {
-    return <FullPage><p className="text-green-600 font-medium">Esta pesquisa já foi respondida.</p></FullPage>;
+    return <FullPage><Alert tone="success">Esta pesquisa já foi respondida com este link.</Alert></FullPage>;
   }
 
   if (status === "expirado") {
-    return <FullPage><p className="text-amber-600 font-medium">Este link expirou.</p></FullPage>;
+    return <FullPage><Alert tone="error">Este link expirou. Solicite um novo envio ao responsável pela pesquisa.</Alert></FullPage>;
   }
 
   if (status === "enviado") {
@@ -95,7 +107,7 @@ export default function ResponderPage() {
   }
 
   if (status === "erro" || !pesquisa || !envio) {
-    return <FullPage><p className="text-red-600">{errorMsg || "Erro desconhecido."}</p></FullPage>;
+    return <FullPage><Alert tone="error">{errorMsg || "Não foi possível carregar esta pesquisa."}</Alert></FullPage>;
   }
 
   return (
@@ -107,6 +119,9 @@ export default function ResponderPage() {
             <p className="mt-2 text-[var(--muted-foreground)]">{pesquisa.descricao}</p>
           )}
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">Olá, {envio.nome}!</p>
+          <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+            Progresso: {totalRespondidas}/{totalPerguntas} resposta(s) preenchida(s)
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-8">
             {pesquisa.perguntas.map((pergunta) => (
@@ -175,11 +190,17 @@ export default function ResponderPage() {
               </div>
             ))}
 
-            {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+            {errorMsg && <Alert tone="error">{errorMsg}</Alert>}
+
+            {faltantes > 0 && (
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Faltam {faltantes} pergunta(s) para concluir o envio.
+              </p>
+            )}
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || faltantes > 0}
               className="btn-primary w-full disabled:opacity-60"
             >
               {submitting ? "Enviando..." : "Enviar respostas"}

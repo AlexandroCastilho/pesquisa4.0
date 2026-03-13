@@ -6,10 +6,13 @@ const statusConfig: Record<PesquisaStatus, { label: string; className: string }>
   ENCERRADA: { label: "Encerrada", className: "bg-rose-50 text-rose-700 border border-rose-200" },
 };
 
+const badgeBase = "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold";
+
 export function BadgeStatus({ status }: { status: PesquisaStatus }) {
   const { label, className } = statusConfig[status] ?? statusConfig.RASCUNHO;
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}>
+    <span className={`${badgeBase} ${className}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
       {label}
     </span>
   );
@@ -30,7 +33,8 @@ const envioStatusConfig: Record<EnvioStatus, { label: string; className: string 
 export function BadgeEnvioStatus({ status }: { status: EnvioStatus }) {
   const { label, className } = envioStatusConfig[status] ?? envioStatusConfig.PENDENTE;
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}>
+    <span className={`${badgeBase} ${className}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
       {label}
     </span>
   );
@@ -45,7 +49,7 @@ const roleConfig: Record<Role, { label: string; className: string }> = {
 export function BadgeRole({ role }: { role: Role }) {
   const { label, className } = roleConfig[role];
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}>
+    <span className={`${badgeBase} ${className}`}>
       {label}
     </span>
   );
@@ -57,7 +61,7 @@ export function BadgeAtivo({ ativo }: { ativo: boolean }) {
     : "bg-rose-50 text-rose-700 border border-rose-200";
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}>
+    <span className={`${badgeBase} ${className}`}>
       {ativo ? "Ativo" : "Desativado"}
     </span>
   );

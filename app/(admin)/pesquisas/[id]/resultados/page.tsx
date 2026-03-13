@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAuthTenantContext } from "@/lib/auth-context";
 import { buscarPesquisa } from "@/services/pesquisa.service";
@@ -17,30 +18,53 @@ export default async function ResultadosPage({ params }: Props) {
   if (!pesquisa) notFound();
 
   const respostas = await listarRespostasDaPesquisa(id, ctx.empresa.id);
+  const totalEnvios = pesquisa._count.envios;
+  const taxaResposta = totalEnvios > 0 ? Math.round((respostas.length / totalEnvios) * 100) : 0;
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="page-title">Resultados</h1>
-      <p className="page-subtitle">{pesquisa.titulo}</p>
-      <p className="mt-4 text-sm text-[var(--muted-foreground)]">
-        {respostas.length} resposta(s) coletada(s)
-      </p>
+    <div className="space-y-6">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Resultados</h1>
+          <p className="page-subtitle">{pesquisa.titulo}</p>
+        </div>
+        <Link href={`/pesquisas/${id}`} className="btn-secondary">Voltar para visão da pesquisa</Link>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="app-card p-5">
+          <p className="text-sm text-[var(--muted-foreground)]">Respostas coletadas</p>
+          <p className="text-3xl font-bold text-[var(--card-foreground)] mt-1">{respostas.length}</p>
+        </div>
+        <div className="app-card p-5">
+          <p className="text-sm text-[var(--muted-foreground)]">Total de envios</p>
+          <p className="text-3xl font-bold text-[var(--card-foreground)] mt-1">{totalEnvios}</p>
+        </div>
+        <div className="app-card p-5">
+          <p className="text-sm text-[var(--muted-foreground)]">Taxa de resposta</p>
+          <p className="text-3xl font-bold text-[var(--card-foreground)] mt-1">{taxaResposta}%</p>
+        </div>
+      </div>
 
       {respostas.length === 0 ? (
-        <div className="mt-12 text-center text-[var(--muted-foreground)]">
-          Nenhuma resposta recebida ainda.
+        <div className="empty-state">
+          <p className="text-[var(--foreground)] font-semibold">Nenhuma resposta recebida ainda</p>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">Quando os destinatários responderem, você verá as análises aqui.</p>
         </div>
       ) : (
-        <div className="mt-6 space-y-6">
+        <div className="space-y-5">
           {respostas.map((r) => (
             <div key={r.id} className="app-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <p className="font-semibold text-[var(--card-foreground)]">{r.envio.nome}</p>
-                <p className="text-sm text-[var(--muted-foreground)]">{r.envio.email}</p>
+                <div>
+                  <p className="font-semibold text-[var(--card-foreground)]">{r.envio.nome}</p>
+                  <p className="text-sm text-[var(--muted-foreground)]">{r.envio.email}</p>
+                </div>
+                <p className="text-xs text-[var(--muted-foreground)]">{r.itens.length} item(ns)</p>
               </div>
               <div className="space-y-3">
                 {r.itens.map((item) => (
-                  <div key={item.id} className="text-sm">
+                  <div key={item.id} className="surface-soft p-3 text-sm">
                     <p className="font-medium text-[var(--foreground)]">{item.pergunta.texto}</p>
                     <p className="mt-0.5 text-[var(--muted-foreground)]">
                       {item.opcao?.texto ??

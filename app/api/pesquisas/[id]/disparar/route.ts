@@ -4,6 +4,7 @@ import { createErrorResponse } from "@/lib/api-error";
 import { requireAdminTenantContext, assertCanManagePesquisa } from "@/lib/auth-context";
 import { disparoSchema } from "@/lib/validation/pesquisa";
 import { criarDisparoJob } from "@/services/envio.service";
+import { acionarProcessamentoDisparo } from "@/services/disparo-job-processor.service";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,6 +18,14 @@ export async function POST(request: Request, { params }: Params) {
     const data = disparoSchema.parse(body);
 
     const lote = await criarDisparoJob(id, ctx.empresa.id, data);
+
+    if (lote.job.status !== "CONCLUIDO") {
+      void acionarProcessamentoDisparo(id, lote.job.id, ctx.empresa.id, {
+        ciclos: 1,
+        batchSize: 20,
+      });
+    }
+
     return NextResponse.json({ lote }, { status: 202 });
   } catch (error) {
     if (error instanceof z.ZodError) {

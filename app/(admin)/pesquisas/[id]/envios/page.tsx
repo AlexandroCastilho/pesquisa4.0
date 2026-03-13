@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getAuthTenantContext } from "@/lib/auth-context";
 import { listarEnvios } from "@/services/envio.service";
@@ -21,11 +22,16 @@ export default async function EnviosPage({ params }: Props) {
   if (!envios) notFound();
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="page-title">Envios</h1>
-      <p className="page-subtitle">{pesquisa.titulo}</p>
+    <div className="space-y-6">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Envios</h1>
+          <p className="page-subtitle">{pesquisa.titulo}</p>
+        </div>
+        <Link href={`/pesquisas/${id}`} className="btn-secondary">Voltar para visão da pesquisa</Link>
+      </div>
 
-      <div className="mt-6">
+      <div>
         <EnviosPanel pesquisaId={id} enviosIniciais={envios} />
       </div>
     </div>

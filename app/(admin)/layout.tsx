@@ -29,7 +29,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         companyName={ctx.empresa.nome}
         role={ctx.profile.role}
       />
-      <main className="flex-1 overflow-auto px-6 py-8 lg:px-10">{children}</main>
+      <main className="flex-1 overflow-auto px-4 py-6 md:px-7 lg:px-10 lg:py-8">
+        <div className="page-shell">{children}</div>
+      </main>
     </div>
   );
 }

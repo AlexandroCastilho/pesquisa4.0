@@ -7,6 +7,10 @@ export interface Envio {
   email: string;
   token: string;
   status: EnvioStatus;
+  tentativas: number;
+  ultimaTentativaEm?: string | Date | null;
+  proximoRetryEm?: string | Date | null;
+  erroCodigo?: string | null;
   enviadoEm?: string | Date | null;
   respondidoEm?: string | Date | null;
   expiraEm?: string | Date | null;

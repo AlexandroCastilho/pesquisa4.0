@@ -1,6 +1,8 @@
 # Pesquisa 4.0
 
-Plataforma SaaS multi-empresa para criação, envio e coleta de respostas de pesquisas. Construída com Next.js 16, Prisma 7 e Supabase Auth.
+Plataforma SaaS multiempresa para criar pesquisas, configurar perguntas, importar destinatarios, disparar convites por email e acompanhar respostas com governanca por empresa.
+
+Construida com Next.js 16, Prisma 7, PostgreSQL (Supabase) e Supabase Auth.
 
 ---
 
@@ -17,16 +19,27 @@ Plataforma SaaS multi-empresa para criação, envio e coleta de respostas de pes
 
 ---
 
-## Funcionalidades
+## Visao de produto
 
-- **Multi-empresa**: cada usuário pertence a uma `Empresa`; dados são isolados por `empresaId`
-- **Controle de acesso (RBAC)**: papéis `OWNER`, `ADMIN` e `MEMBER` com regras de permissão centralizadas
-- **Gestão de pesquisas**: criação, edição de perguntas, envio por e-mail e coleta de respostas
-- **Disparo assíncrono**: criação de lote de envio com processamento em segundo plano por status no banco
-- **Painel admin**: gerenciar papel e status (ativo/inativo) dos usuários da empresa
-- **Proteção server-side**: layout e rotas verificam autenticação e papel antes de renderizar
-- **Conta inativa**: usuários desativados são bloqueados no login e nas rotas protegidas
-- **Recuperação de senha**: fluxo completo de "esqueci minha senha" com link de redefinição via Supabase Auth
+- Multiempresa com isolamento por empresa
+- Controle de acesso por papel (OWNER, ADMIN, MEMBER)
+- Operacao orientada a fluxo: criar -> configurar -> disparar -> responder -> analisar
+- Painel administrativo para governanca de usuarios e acessos
+- Processamento assincrono de disparos com acompanhamento de progresso e retries
+
+---
+
+## Funcionalidades principais
+
+- Multiempresa: dados segregados por empresa
+- RBAC centralizado com OWNER, ADMIN e MEMBER
+- Criacao e gestao de pesquisas
+- Gestao de perguntas com criacao, edicao, exclusao e ordenacao
+- Importacao de destinatarios via CSV com validacao de cabecalho e historico de importacoes
+- Disparo assincrono com lote, progresso e retries
+- Coleta de respostas por link publico com token
+- Painel admin de usuarios e empresa (papel, status ativo/inativo e resumo da empresa)
+- Recuperacao de senha ponta a ponta
 
 ---
 
@@ -36,7 +49,7 @@ Plataforma SaaS multi-empresa para criação, envio e coleta de respostas de pes
 app/
 	(auth)/          → Páginas de login, cadastro e recuperação de senha
 	(admin)/         → Páginas protegidas: dashboard, pesquisas, admin
-	api/             → Rotas de API (pesquisas, envios, perguntas, respostas, auth, admin/users)
+	api/             → Rotas de API (auth, pesquisas, perguntas, envios, respostas, admin)
 	responder/       → Página pública de resposta via token
 components/        → Componentes React (layout, pesquisas, admin, ui)
 lib/
@@ -44,7 +57,7 @@ lib/
 	access-control.ts → Utilitários de permissão por papel
 	prisma.ts        → Instância do Prisma Client
 	supabase/        → Clientes Supabase (server e client)
-services/          → Lógica de negócio (pesquisas, envios, respostas, admin-users)
+services/          → Logica de negocio (pesquisas, perguntas, envios, respostas, admin)
 prisma/
 	schema.prisma    → Modelos: Profile, Empresa, Pesquisa, Pergunta, Envio, Resposta
 	migrations/      → Migrações SQL versionadas
@@ -69,7 +82,10 @@ NEXT_PUBLIC_APP_URL=https://<seu-dominio-ou-url-publica>
 DATABASE_URL=postgresql://postgres.<project>:<password>@aws-1-<region>.pooler.supabase.com:5432/postgres
 
 # E-mail (para envio de pesquisas)
-RESEND_API_KEY=<resend-key>
+SMTP_HOST=smtp.exemplo.com
+SMTP_PORT=587
+SMTP_USER=<usuario-smtp>
+SMTP_PASS=<senha-smtp>
 EMAIL_FROM=noreply@seudominio.com
 ```
 
@@ -109,11 +125,18 @@ npx prisma db push
 npm run dev
 ```
 
+Se houver travas de processo local, use:
+
+```bash
+npm run dev:clean
+npm run dev:fresh
+```
+
 Acesse [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Papéis e permissões
+## Papeis e permissoes
 
 | Papel | Acesso admin | Gerenciar pesquisas | Gerenciar usuários |
 |---|---|---|---|
@@ -123,9 +146,68 @@ Acesse [http://localhost:3000](http://localhost:3000).
 
 O primeiro usuário a se cadastrar recebe automaticamente o papel `OWNER`.
 
+Regras aplicadas no modulo administrativo:
+
+- OWNER pode alterar papel/status de outros usuarios, mas nao pode desativar a propria conta
+- OWNER nao pode remover/desativar o ultimo OWNER ativo da empresa
+- ADMIN gerencia apenas MEMBER
+- MEMBER nao acessa funcoes administrativas
+- As validacoes de permissao existem em rota e service (defesa em profundidade)
+
 ---
 
-## Fluxo de recuperação de senha
+## Fluxos ponta a ponta
+
+### 1) Login
+
+1. Usuario acessa /login
+2. API valida credenciais no Supabase Auth
+3. Sistema garante bootstrap de perfil + empresa
+4. Usuario ativo entra no dashboard
+
+### 2) Criacao de pesquisa
+
+1. Usuario cria pesquisa em /pesquisas/nova
+2. API valida dados com Zod
+3. Pesquisa e criada na empresa do usuario
+4. Usuario e direcionado para a visao da pesquisa
+
+### 3) Configuracao de perguntas
+
+1. Usuario adiciona perguntas por tipo (multipla escolha, texto livre, escala)
+2. Pode editar, excluir e reordenar
+3. Feedback de sucesso/erro aparece na tela
+
+### 4) Importacao de destinatarios
+
+1. Usuario importa arquivo CSV na tela de envios
+2. Sistema valida cabecalho, email e duplicidade
+3. Mostra resumo (validos, invalidos, duplicados)
+4. Mantem historico de importacoes por pesquisa
+
+### 5) Disparo
+
+1. Usuario confirma disparo
+2. API cria lote assicrono de envio
+3. Front acompanha progresso em tempo real
+4. Sistema controla retries e status de falha
+
+### 6) Resposta do cliente
+
+1. Destinatario abre link com token
+2. Sistema valida token, expiracao e estado de resposta
+3. Formulario exige resposta completa antes do envio
+4. Respostas sao gravadas com validacoes de integridade
+
+### 7) Leitura de resultados
+
+1. Painel mostra total de envios, respostas e taxa
+2. Lista respostas por destinatario e item
+3. Navegacao consistente entre detalhes, perguntas, envios e resultados
+
+---
+
+## Fluxo de recuperacao de senha
 
 1. Usuário acessa `/esqueci-senha` e informa o e-mail.
 2. A API `/api/auth/forgot-password` chama `supabase.auth.resetPasswordForEmail`.
@@ -134,16 +216,16 @@ O primeiro usuário a se cadastrar recebe automaticamente o papel `OWNER`.
 5. Usuário define a nova senha em `/redefinir-senha`.
 6. A API `/api/auth/reset-password` valida com Zod e chama `supabase.auth.updateUser`.
 
-> Garanta que `NEXT_PUBLIC_APP_URL` esteja configurada com a URL pública correta para que os links de e-mail funcionem fora do ambiente local.
+Garanta que NEXT_PUBLIC_APP_URL esteja configurada com a URL publica correta para os links funcionarem fora do ambiente local.
 
 ---
 
-## Fluxo de disparo assíncrono
+## Disparo assincrono e confiabilidade
 
 1. `POST /api/pesquisas/:id/disparar` cria um `DisparoJob` e registra os destinatários como `PENDENTE`.
 2. A API retorna imediatamente (`202`) com dados do lote.
-3. A tela de envios inicia polling em `GET /api/pesquisas/:id/disparos/:jobId?processar=1`.
-4. Cada poll processa um lote pequeno de pendências no backend, atualizando status no banco.
+3. A tela de envios inicia polling em GET /api/pesquisas/:id/disparos/:jobId.
+4. O processamento e acionado em ciclos curtos no backend, com lock de job e claim de envio.
 5. O frontend recarrega a lista de envios e exibe progresso em tempo real.
 
 Status de `Envio`:
@@ -159,6 +241,7 @@ Status de `Envio`:
 - Ao criar o lote, destinatários já com envio ativo (`PENDENTE`, `PROCESSANDO`, `ENVIADO`, `RESPONDIDO`) são ignorados.
 - O processador usa lock por job e claim por envio para evitar corrida em execuções paralelas.
 - Jobs em andamento podem ser retomados com polling após reload da página.
+- Erros transientes sao classificados com codigo e tentativa para retry controlado.
 
 ### Limitações e alternativa recomendada
 
@@ -168,6 +251,29 @@ Para maior escala/confiabilidade, a melhor alternativa é mover o processamento 
 - fila externa (Upstash QStash, SQS, RabbitMQ)
 - scheduler/cron para drenar pendências
 - worker separado da aplicação web
+
+---
+
+## Admin e governanca
+
+Painel administrativo em /admin/usuarios:
+
+- Lista de usuarios da empresa
+- Alteracao de papel com confirmacao
+- Ativar/desativar com confirmacao
+- Badges de papel e status
+- Resumo da empresa (usuarios, ativos, distribuicao por papel)
+
+Rotas administrativas:
+
+- GET /api/admin/users
+- PATCH /api/admin/users/:id
+- GET /api/admin/company
+
+Servicos organizados:
+
+- services/admin/admin-governance.service.ts
+- services/admin/admin-user-access.service.ts
 
 ---
 
@@ -189,7 +295,20 @@ O script:
 
 ---
 
-## Build
+## Comandos uteis
+
+```bash
+npm run dev
+npm run dev:clean
+npm run dev:fresh
+npm run lint
+npm run build
+npm run start
+```
+
+---
+
+## Build de producao
 
 ```bash
 npm run build

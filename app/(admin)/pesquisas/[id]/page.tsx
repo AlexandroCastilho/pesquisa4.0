@@ -18,8 +18,8 @@ export default async function PesquisaDetalhe({ params }: Props) {
   if (!pesquisa) notFound();
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      <div className="page-header">
         <div>
           <h1 className="page-title">{pesquisa.titulo}</h1>
           {pesquisa.descricao && (
@@ -29,21 +29,24 @@ export default async function PesquisaDetalhe({ params }: Props) {
         <BadgeStatus status={pesquisa.status} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <NavCard
           href={`/pesquisas/${id}/perguntas`}
           title="Perguntas"
           description={`${pesquisa.perguntas.length} pergunta(s) cadastrada(s)`}
+          cta="Gerenciar perguntas"
         />
         <NavCard
           href={`/pesquisas/${id}/envios`}
           title="Envios"
           description={`${pesquisa._count.envios} envio(s)`}
+          cta="Gerenciar disparos"
         />
         <NavCard
           href={`/pesquisas/${id}/resultados`}
           title="Resultados"
           description="Ver respostas coletadas"
+          cta="Analisar dados"
         />
       </div>
     </div>
@@ -54,18 +57,21 @@ function NavCard({
   href,
   title,
   description,
+  cta,
 }: {
   href: string;
   title: string;
   description: string;
+  cta: string;
 }) {
   return (
     <Link
       href={href}
-      className="app-card app-card-hover p-6"
+      className="app-card app-card-hover p-6 flex flex-col gap-2"
     >
       <h2 className="font-semibold text-lg text-[var(--card-foreground)]">{title}</h2>
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">{description}</p>
+      <p className="text-sm font-semibold text-[var(--accent-foreground)] mt-2">{cta} →</p>
     </Link>
   );
 }

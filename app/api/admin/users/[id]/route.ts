@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createErrorResponse } from "@/lib/api-error";
 import { requireAdminTenantContext, assertCanManageUsers } from "@/lib/auth-context";
 import { updateUserAccessSchema } from "@/lib/validation/admin-user";
-import { atualizarAcessoUsuario } from "@/services/admin-user.service";
+import { atualizarAcessoUsuario } from "@/services/admin/admin-user-access.service";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -45,6 +45,8 @@ export async function PATCH(request: Request, { params }: Params) {
         { includes: "não encontrado", status: 404 },
         { includes: "último OWNER", status: 409 },
         { includes: "própria conta", status: 409 },
+        { includes: "alterar o papel da própria conta", status: 409 },
+        { includes: "Apenas um OWNER", status: 403 },
       ],
     });
   }

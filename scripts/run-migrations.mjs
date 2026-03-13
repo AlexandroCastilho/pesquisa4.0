@@ -32,6 +32,14 @@ const MIGRATIONS = [
     name: "20260313180000_disparo_jobs_async",
     file: "prisma/migrations/20260313180000_disparo_jobs_async/migration.sql",
   },
+  {
+    name: "20260314001000_envio_retry_controls",
+    file: "prisma/migrations/20260314001000_envio_retry_controls/migration.sql",
+  },
+  {
+    name: "20260314004000_importacao_destinatarios_lotes",
+    file: "prisma/migrations/20260314004000_importacao_destinatarios_lotes/migration.sql",
+  },
 ];
 
 async function createMigrationsTable() {

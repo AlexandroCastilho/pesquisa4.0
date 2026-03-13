@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { getAuthTenantContext, assertCanManageUsers } from "@/lib/auth-context";
 import { UsersAccessPanel } from "@/components/admin/users-access-panel";
-import { listarUsuariosDaEmpresa } from "@/services/admin-user.service";
+import {
+  listarUsuariosDaEmpresa,
+  obterResumoEmpresaAdmin,
+} from "@/services/admin/admin-governance.service";
 
 export default async function AdminUsuariosPage() {
   const ctx = await getAuthTenantContext();
@@ -12,22 +15,24 @@ export default async function AdminUsuariosPage() {
 
   assertCanManageUsers(ctx.profile);
 
-  const usuarios = await listarUsuariosDaEmpresa(ctx.empresa.id);
+  const [usuarios, empresa] = await Promise.all([
+    listarUsuariosDaEmpresa(ctx.empresa.id),
+    obterResumoEmpresaAdmin(ctx.empresa.id),
+  ]);
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="space-y-6">
       <div>
         <h1 className="page-title">Admin</h1>
-        <p className="page-subtitle">Gerencie usuários, papéis de acesso e status da sua empresa.</p>
+        <p className="page-subtitle">Governança de usuários, papéis e empresa para operação SaaS multiempresa.</p>
       </div>
 
-      <div className="mt-6">
-        <UsersAccessPanel
-          usuariosIniciais={usuarios}
-          actorRole={ctx.profile.role}
-          actorId={ctx.profile.id}
-        />
-      </div>
+      <UsersAccessPanel
+        usuariosIniciais={usuarios}
+        empresa={empresa}
+        actorRole={ctx.profile.role}
+        actorId={ctx.profile.id}
+      />
     </div>
   );
 }

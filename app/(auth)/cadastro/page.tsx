@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Alert } from "@/components/ui/alert";
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -52,9 +53,10 @@ export default function CadastroPage() {
 
   return (
     <main className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
-      <div className="w-full max-w-md app-card p-8">
-        <h1 className="page-title">Criar conta</h1>
-        <p className="page-subtitle">Cadastre sua empresa</p>
+      <div className="w-full max-w-md app-card p-8 relative overflow-hidden">
+        <div className="absolute -left-12 -bottom-12 h-28 w-28 rounded-full bg-[var(--accent)]" />
+        <h1 className="page-title relative">Criar conta</h1>
+        <p className="page-subtitle relative">Cadastre sua empresa e comece a operar em minutos.</p>
 
         <form onSubmit={handleSignup} className="mt-6 space-y-5">
           <div>
@@ -112,8 +114,8 @@ export default function CadastroPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {message && <p className="text-sm text-green-600">{message}</p>}
+          {error && <Alert tone="error">{error}</Alert>}
+          {message && <Alert tone="success">{message}</Alert>}
 
           <button
             type="submit"

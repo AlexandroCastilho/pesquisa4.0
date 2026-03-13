@@ -27,24 +27,26 @@ export function Sidebar({ canManageUsers, companyName, role }: Props) {
   }
 
   return (
-    <aside className="w-full md:w-64 md:min-h-screen border-b md:border-b-0 md:border-r border-[var(--border)] bg-[var(--card)]/96 backdrop-blur flex flex-col py-4 md:py-6 px-4">
-      <div className="mb-4 md:mb-8 px-2">
-        <p className="text-[var(--foreground)] font-semibold text-lg tracking-tight">Pesquisa 4.0</p>
-        <p className="text-xs text-[var(--muted-foreground)] mt-1">{companyName}</p>
-        <p className="text-xs text-[var(--muted-foreground)] mt-1">Perfil: {getRoleLabel(role)}</p>
+    <aside className="w-full md:w-72 md:min-h-screen border-b md:border-b-0 md:border-r border-[var(--border)] bg-[var(--card)]/94 backdrop-blur-xl flex flex-col py-4 md:py-6 px-4">
+      <div className="mb-4 md:mb-6 px-2">
+        <div className="surface-soft px-3 py-3.5">
+          <p className="text-[var(--foreground)] font-bold text-lg tracking-tight">Pesquisa 4.0</p>
+          <p className="text-xs text-[var(--muted-foreground)] mt-1">{companyName}</p>
+          <p className="text-xs text-[var(--muted-foreground)] mt-1">Perfil: {getRoleLabel(role)}</p>
+        </div>
       </div>
 
-      <nav className="flex-1 grid grid-cols-2 md:grid-cols-1 gap-1">
+      <nav className="flex-1 grid grid-cols-2 md:grid-cols-1 gap-1.5">
         {links.map(({ href, label }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
               href={href}
-              className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+              className={`block rounded-xl px-3 py-2.5 text-sm font-semibold transition border ${
                 active
-                  ? "bg-[var(--accent)] text-[var(--accent-foreground)]"
-                  : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                  ? "bg-[var(--accent)] text-[var(--accent-foreground)] border-[color:var(--primary)]/30 shadow-sm"
+                  : "text-[var(--muted-foreground)] border-transparent hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               {label}
@@ -55,7 +57,7 @@ export function Sidebar({ canManageUsers, companyName, role }: Props) {
 
       <button
         onClick={handleLogout}
-        className="btn-ghost mt-3 md:mt-4 justify-center md:justify-start"
+        className="btn-secondary mt-3 md:mt-4 justify-center md:justify-start"
       >
         Sair
       </button>
