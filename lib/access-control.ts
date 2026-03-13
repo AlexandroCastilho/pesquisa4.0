@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/role";
 
 export const ADMIN_ROLES: Role[] = ["OWNER", "ADMIN"];
 export const MANAGE_USERS_ROLES: Role[] = ["OWNER", "ADMIN"];

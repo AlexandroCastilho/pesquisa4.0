@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/role";
 import { canAssignRole, canEditTargetUser, canManageUsers } from "@/lib/access-control";
 import { getPrismaClient } from "@/lib/prisma";
 

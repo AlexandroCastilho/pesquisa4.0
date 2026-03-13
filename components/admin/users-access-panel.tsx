@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/role";
 import { BadgeAtivo, BadgeRole } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";

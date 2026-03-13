@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/role";
 import { getRoleLabel } from "@/lib/access-control";
 
 type Props = {

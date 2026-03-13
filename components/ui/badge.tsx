@@ -19,7 +19,7 @@ export function BadgeStatus({ status }: { status: PesquisaStatus }) {
 }
 
 import type { EnvioStatus } from "@/types/envio";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/role";
 
 const envioStatusConfig: Record<EnvioStatus, { label: string; className: string }> = {
   PENDENTE: { label: "Pendente", className: "bg-slate-100 text-slate-700 border border-slate-200" },

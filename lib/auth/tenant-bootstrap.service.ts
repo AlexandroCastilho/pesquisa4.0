@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role } from "@/types/role";
 import { getPrismaClient } from "@/lib/prisma";
 import {
   ProfileNotFoundError,
