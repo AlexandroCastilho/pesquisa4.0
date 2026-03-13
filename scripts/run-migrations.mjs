@@ -28,6 +28,10 @@ const MIGRATIONS = [
     name: "20260313143000_profile_roles_admin_access",
     file: "prisma/migrations/20260313143000_profile_roles_admin_access/migration.sql",
   },
+  {
+    name: "20260313180000_disparo_jobs_async",
+    file: "prisma/migrations/20260313180000_disparo_jobs_async/migration.sql",
+  },
 ];
 
 async function createMigrationsTable() {

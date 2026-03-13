@@ -41,6 +41,7 @@ model Pesquisa {
   empresa      Empresa        @relation(fields: [empresaId], references: [id])
   perguntas    Pergunta[]
   envios       Envio[]
+  disparoJobs  DisparoJob[]
   criadaEm     DateTime       @default(now()) @map("criada_em")
   atualizadaEm DateTime       @updatedAt @map("atualizada_em")
 
@@ -88,6 +89,8 @@ model Envio {
   id           String      @id @default(cuid())
   pesquisaId   String      @map("pesquisa_id")
   pesquisa     Pesquisa    @relation(fields: [pesquisaId], references: [id])
+  jobId        String?     @map("job_id")
+  job          DisparoJob? @relation(fields: [jobId], references: [id])
   nome         String
   email        String
   token        String      @unique @default(cuid())
@@ -104,9 +107,41 @@ model Envio {
 
 enum EnvioStatus {
   PENDENTE
+  PROCESSANDO
   ENVIADO
   RESPONDIDO
   EXPIRADO
+  ERRO
+}
+
+model DisparoJob {
+  id          String          @id @default(cuid())
+  pesquisaId  String          @map("pesquisa_id")
+  pesquisa    Pesquisa        @relation(fields: [pesquisaId], references: [id], onDelete: Cascade)
+  empresaId   String          @map("empresa_id")
+  empresa     Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  status      DisparoJobStatus @default(PENDENTE)
+  total       Int             @default(0)
+  processados Int             @default(0)
+  enviados    Int             @default(0)
+  erros       Int             @default(0)
+  iniciadoEm  DateTime?       @map("iniciado_em")
+  finalizadoEm DateTime?      @map("finalizado_em")
+  lockToken   String?         @map("lock_token")
+  lockAt      DateTime?       @map("lock_at")
+  ultimoErro  String?         @map("ultimo_erro")
+  criadoEm    DateTime        @default(now()) @map("criado_em")
+  atualizadoEm DateTime       @updatedAt @map("atualizado_em")
+  envios      Envio[]
+
+  @@index([empresaId, pesquisaId, status])
+  @@map("disparo_jobs")
+}
+
+enum DisparoJobStatus {
+  PENDENTE
+  PROCESSANDO
+  CONCLUIDO
   ERRO
 }
 
@@ -140,6 +175,7 @@ model Empresa {
   slug         String?    @unique
   profiles     Profile[]
   pesquisas    Pesquisa[]
+  disparoJobs  DisparoJob[]
   criadaEm     DateTime   @default(now()) @map("criada_em")
   atualizadaEm DateTime   @updatedAt @map("atualizada_em")
 

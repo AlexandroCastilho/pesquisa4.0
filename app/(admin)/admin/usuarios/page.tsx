@@ -1,9 +1,15 @@
-import { requireAdminTenantContext, assertCanManageUsers } from "@/lib/auth-context";
+import { redirect } from "next/navigation";
+import { getAuthTenantContext, assertCanManageUsers } from "@/lib/auth-context";
 import { UsersAccessPanel } from "@/components/admin/users-access-panel";
 import { listarUsuariosDaEmpresa } from "@/services/admin-user.service";
 
 export default async function AdminUsuariosPage() {
-  const ctx = await requireAdminTenantContext();
+  const ctx = await getAuthTenantContext();
+
+  if (!ctx || !ctx.profile.ativo) {
+    redirect("/login");
+  }
+
   assertCanManageUsers(ctx.profile);
 
   const usuarios = await listarUsuariosDaEmpresa(ctx.empresa.id);

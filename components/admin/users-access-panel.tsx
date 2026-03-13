@@ -16,7 +16,11 @@ const allRoles: Role[] = ["OWNER", "ADMIN", "MEMBER"];
 function formatDate(value: string | Date) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("pt-BR");
+
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 export function UsersAccessPanel({ usuariosIniciais, actorRole, actorId }: Props) {

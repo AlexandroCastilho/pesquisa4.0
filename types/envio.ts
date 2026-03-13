@@ -1,4 +1,4 @@
-export type EnvioStatus = "PENDENTE" | "ENVIADO" | "RESPONDIDO" | "EXPIRADO" | "ERRO";
+export type EnvioStatus = "PENDENTE" | "PROCESSANDO" | "ENVIADO" | "RESPONDIDO" | "EXPIRADO" | "ERRO";
 
 export interface Envio {
   id: string;

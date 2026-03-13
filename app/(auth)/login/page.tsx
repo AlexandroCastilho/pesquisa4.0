@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,10 +15,14 @@ export default function LoginPage() {
     setError("");
 
     try {
+      const formData = new FormData(e.currentTarget);
+      const email = String(formData.get("email") ?? "").trim().toLowerCase();
+      const password = String(formData.get("password") ?? "");
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -49,10 +51,10 @@ export default function LoginPage() {
             <label htmlFor="email" className="field-label">E-mail</label>
             <input
               id="email"
+              name="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               required
+              autoFocus
               autoComplete="email"
               inputMode="email"
               className="field-control block min-h-11"
@@ -64,9 +66,8 @@ export default function LoginPage() {
             <label htmlFor="password" className="field-label">Senha</label>
             <input
               id="password"
+              name="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
               className="field-control block min-h-11"

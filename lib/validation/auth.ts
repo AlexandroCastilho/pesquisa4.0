@@ -17,5 +17,26 @@ export const cadastroSchema = z.object({
     .refine((v) => /\d/.test(v), "A senha deve conter pelo menos um número."),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "A senha deve ter no mínimo 8 caracteres.")
+      .max(128)
+      .refine((v) => /[A-Za-z]/.test(v), "A senha deve conter pelo menos uma letra.")
+      .refine((v) => /\d/.test(v), "A senha deve conter pelo menos um número."),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não conferem.",
+    path: ["confirmPassword"],
+  });
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CadastroInput = z.infer<typeof cadastroSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

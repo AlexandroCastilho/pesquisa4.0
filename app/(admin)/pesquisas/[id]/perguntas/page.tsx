@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
-import { requireAuthTenantContext } from "@/lib/auth-context";
+import { notFound, redirect } from "next/navigation";
+import { getAuthTenantContext } from "@/lib/auth-context";
 import { buscarPesquisa } from "@/services/pesquisa.service";
 import { PerguntasManager } from "@/components/perguntas/perguntas-manager";
 
@@ -7,7 +7,11 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function PerguntasPage({ params }: Props) {
   const { id } = await params;
-  const ctx = await requireAuthTenantContext();
+  const ctx = await getAuthTenantContext();
+
+  if (!ctx || !ctx.profile.ativo) {
+    redirect("/login");
+  }
 
   const pesquisa = await buscarPesquisa(id, ctx.empresa.id);
   if (!pesquisa) notFound();

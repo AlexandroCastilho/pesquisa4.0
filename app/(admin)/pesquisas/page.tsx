@@ -1,10 +1,16 @@
 import Link from "next/link";
-import { requireAuthTenantContext } from "@/lib/auth-context";
+import { redirect } from "next/navigation";
+import { getAuthTenantContext } from "@/lib/auth-context";
 import { listarPesquisas } from "@/services/pesquisa.service";
 import { BadgeStatus } from "@/components/ui/badge";
 
 export default async function PesquisasPage() {
-  const ctx = await requireAuthTenantContext();
+  const ctx = await getAuthTenantContext();
+
+  if (!ctx || !ctx.profile.ativo) {
+    redirect("/login");
+  }
+
   const pesquisas = await listarPesquisas(ctx.empresa.id);
 
   return (

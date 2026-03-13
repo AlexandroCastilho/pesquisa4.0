@@ -32,14 +32,15 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Rotas protegidas: redireciona para login se não autenticado
-  if (!user && !pathname.startsWith("/login") && !pathname.startsWith("/cadastro") && !pathname.startsWith("/esqueci-senha") && !pathname.startsWith("/responder") && !pathname.startsWith("/api/auth") && !pathname.startsWith("/api/respostas")) {
+  if (!user && !pathname.startsWith("/login") && !pathname.startsWith("/cadastro") && !pathname.startsWith("/esqueci-senha") && !pathname.startsWith("/redefinir-senha") && !pathname.startsWith("/callback") && !pathname.startsWith("/responder") && !pathname.startsWith("/api/auth") && !pathname.startsWith("/api/respostas")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Se já autenticado e acessar login/cadastro, redireciona para dashboard
-  if (user && (pathname === "/login" || pathname === "/cadastro")) {
+  // Mantém /login acessível para permitir troca de conta/reautenticação
+  // e evita loop de redirecionamento com sessão/cookie inconsistente.
+  if (user && pathname === "/cadastro") {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

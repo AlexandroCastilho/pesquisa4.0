@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const forwardedOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : null;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
     const requestOrigin = new URL(request.url).origin;
-    const redirectBaseUrl = forwardedOrigin ?? appUrl ?? requestOrigin;
+    const redirectBaseUrl = appUrl ?? forwardedOrigin ?? requestOrigin;
 
     const supabase = await createClient();
 

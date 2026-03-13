@@ -20,6 +20,7 @@ import type { Role } from "@prisma/client";
 
 const envioStatusConfig: Record<EnvioStatus, { label: string; className: string }> = {
   PENDENTE: { label: "Pendente", className: "bg-slate-100 text-slate-700 border border-slate-200" },
+  PROCESSANDO: { label: "Processando", className: "bg-sky-50 text-sky-700 border border-sky-200" },
   ENVIADO: { label: "Enviado", className: "bg-indigo-50 text-indigo-700 border border-indigo-200" },
   RESPONDIDO: { label: "Respondido", className: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
   EXPIRADO: { label: "Expirado", className: "bg-amber-50 text-amber-700 border border-amber-200" },

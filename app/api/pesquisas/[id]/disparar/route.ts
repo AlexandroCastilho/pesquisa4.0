@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createErrorResponse } from "@/lib/api-error";
 import { requireAdminTenantContext, assertCanManagePesquisa } from "@/lib/auth-context";
 import { disparoSchema } from "@/lib/validation/pesquisa";
-import { dispararPesquisa } from "@/services/envio.service";
+import { criarDisparoJob } from "@/services/envio.service";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -16,8 +16,8 @@ export async function POST(request: Request, { params }: Params) {
     const body = await request.json();
     const data = disparoSchema.parse(body);
 
-    const resultados = await dispararPesquisa(id, ctx.empresa.id, data);
-    return NextResponse.json({ resultados }, { status: 200 });
+    const lote = await criarDisparoJob(id, ctx.empresa.id, data);
+    return NextResponse.json({ lote }, { status: 202 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       const detail = error.issues.map((i) => i.message).join(" ");

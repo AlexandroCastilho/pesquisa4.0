@@ -1,9 +1,14 @@
 import Link from "next/link";
-import { requireAdminTenantContext } from "@/lib/auth-context";
+import { redirect } from "next/navigation";
+import { getAuthTenantContext } from "@/lib/auth-context";
 import { getPrismaClient } from "@/lib/prisma";
 
 export default async function DashboardPage() {
-  const ctx = await requireAdminTenantContext();
+  const ctx = await getAuthTenantContext();
+
+  if (!ctx || !ctx.profile.ativo) {
+    redirect("/login");
+  }
 
   const prisma = getPrismaClient();
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Envio } from "@/types/envio";
+import type { DisparoJob } from "@/types/disparo-job";
 import { BadgeEnvioStatus } from "@/components/ui/badge";
 
 type Props = {
@@ -10,7 +11,32 @@ type Props = {
 };
 
 type Destinatario = { nome: string; email: string };
-type DisparoResultado = { email: string; status: "ENVIADO" | "ERRO"; erroMsg?: string };
+
+type CriarLoteResponse = {
+  lote?: {
+    job: {
+      id: string;
+      status: "PENDENTE" | "PROCESSANDO" | "CONCLUIDO" | "ERRO";
+      total: number;
+      processados: number;
+      enviados: number;
+      erros: number;
+      criadoEm: string | Date;
+      iniciadoEm?: string | Date | null;
+      finalizadoEm?: string | Date | null;
+    };
+    totalSolicitados: number;
+    totalUnicos: number;
+    totalIgnoradosDuplicados: number;
+    totalPendentesCriados: number;
+  };
+  detail?: string;
+  message?: string;
+};
+
+type ProgressoResponse = {
+  progresso?: DisparoJob;
+};
 
 function toTimeValue(dateInput?: string | Date | null) {
   if (!dateInput) return 0;
@@ -124,7 +150,15 @@ function formatDateTime(value?: string | Date | null) {
   if (!value) return "—";
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return "—";
-  return dt.toLocaleString("pt-BR");
+
+  const day = String(dt.getUTCDate()).padStart(2, "0");
+  const month = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const year = dt.getUTCFullYear();
+  const hours = String(dt.getUTCHours()).padStart(2, "0");
+  const minutes = String(dt.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(dt.getUTCSeconds()).padStart(2, "0");
+
+  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
 }
 
 export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
@@ -135,21 +169,88 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [csvMsg, setCsvMsg] = useState("");
+  const [jobAtivoId, setJobAtivoId] = useState<string | null>(null);
+  const [progresso, setProgresso] = useState<DisparoJob | null>(null);
 
   const totalEnviados = envios.length;
   const totalRespondidos = envios.filter((e) => e.status === "RESPONDIDO").length;
-  const totalPendentes = envios.filter(
-    (e) => e.status === "PENDENTE" || e.status === "ENVIADO"
-  ).length;
+  const totalPendentes = envios.filter((e) => e.status === "PENDENTE" || e.status === "PROCESSANDO").length;
   const totalErro = envios.filter((e) => e.status === "ERRO").length;
   const taxaResposta = totalEnviados > 0 ? (totalRespondidos / totalEnviados) * 100 : 0;
 
-  async function recarregarEnvios() {
+  const recarregarEnvios = useCallback(async () => {
     const listRes = await fetch(`/api/pesquisas/${pesquisaId}/envios`);
     if (!listRes.ok) return;
     const listData = (await listRes.json()) as { envios?: Envio[] };
     setEnvios(sortEnviosByRecent(listData.envios ?? []));
-  }
+  }, [pesquisaId]);
+
+  useEffect(() => {
+    let ativo = true;
+
+    const carregarJobAtivo = async () => {
+      try {
+        const res = await fetch(`/api/pesquisas/${pesquisaId}/disparos/ativo`);
+        if (!res.ok || !ativo) return;
+
+        const data = (await res.json()) as { jobAtivo?: DisparoJob | null };
+        if (data.jobAtivo?.id && ativo) {
+          setProgresso(data.jobAtivo);
+          if (data.jobAtivo.emAndamento) {
+            setJobAtivoId(data.jobAtivo.id);
+          }
+        }
+      } catch {
+        // Falhas temporárias não devem bloquear o uso da tela.
+      }
+    };
+
+    carregarJobAtivo();
+
+    return () => {
+      ativo = false;
+    };
+  }, [pesquisaId]);
+
+  useEffect(() => {
+    if (!jobAtivoId) return;
+
+    let ativo = true;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const tick = async () => {
+      try {
+        const res = await fetch(
+          `/api/pesquisas/${pesquisaId}/disparos/${jobAtivoId}?processar=1&batchSize=10`
+        );
+        if (!res.ok) return;
+
+        const data = (await res.json()) as ProgressoResponse;
+        if (!data.progresso || !ativo) return;
+
+        setProgresso(data.progresso);
+        await recarregarEnvios();
+
+        if (!data.progresso.emAndamento) {
+          setJobAtivoId(null);
+          setSuccessMsg(
+            `Lote finalizado: ${data.progresso.enviados} enviado(s), ${data.progresso.erros} erro(s).`
+          );
+          if (intervalId) clearInterval(intervalId);
+        }
+      } catch {
+        // Mantém polling na próxima janela sem travar UI.
+      }
+    };
+
+    tick();
+    intervalId = setInterval(tick, 2000);
+
+    return () => {
+      ativo = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [jobAtivoId, pesquisaId, recarregarEnvios]);
 
   async function handleImportCsv(file: File) {
     const text = await new Promise<string>((resolve, reject) => {
@@ -228,19 +329,39 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
         body: JSON.stringify({ destinatarios: destsFiltrados, expiraDias }),
       });
 
-      const data = (await res.json()) as { resultados?: DisparoResultado[]; detail?: string; message?: string };
+      const data = (await res.json()) as CriarLoteResponse;
       if (!res.ok) {
         setError(data.detail ?? data.message ?? "Erro ao disparar pesquisa.");
         return;
       }
 
-      const resultados = data.resultados ?? [];
-      const enviados = resultados.filter((r) => r.status === "ENVIADO").length;
-      const erros = resultados.filter((r) => r.status === "ERRO").length;
+      if (!data.lote?.job?.id) {
+        setError("Não foi possível iniciar o lote de disparo.");
+        return;
+      }
+
+      setProgresso({
+        id: data.lote.job.id,
+        status: data.lote.job.status,
+        total: data.lote.job.total,
+        processados: data.lote.job.processados,
+        enviados: data.lote.job.enviados,
+        erros: data.lote.job.erros,
+        pendentes: Math.max(0, data.lote.job.total - data.lote.job.processados),
+        percentual:
+          data.lote.job.total > 0
+            ? Math.round((data.lote.job.processados / data.lote.job.total) * 100)
+            : 100,
+        emAndamento: data.lote.job.status === "PENDENTE" || data.lote.job.status === "PROCESSANDO",
+        criadoEm: data.lote.job.criadoEm,
+        iniciadoEm: data.lote.job.iniciadoEm,
+        finalizadoEm: data.lote.job.finalizadoEm,
+      });
+      setJobAtivoId(data.lote.job.id);
+
       setSuccessMsg(
-        erros > 0
-          ? `${enviados} e-mail(s) enviado(s) com sucesso e ${erros} com erro.`
-          : `${enviados} e-mail(s) enviado(s) com sucesso.`
+        `Lote iniciado com ${data.lote.totalPendentesCriados} envio(s) pendente(s). ` +
+          `${data.lote.totalIgnoradosDuplicados} destinatário(s) ignorado(s) por já terem envio ativo.`
       );
       setDestinatarios([{ nome: "", email: "" }]);
       setCsvMsg("");
@@ -368,6 +489,26 @@ export function EnviosPanel({ pesquisaId, enviosIniciais }: Props) {
 
       <section className="app-card p-6 space-y-4">
         <h3 className="font-semibold text-[var(--card-foreground)]">Histórico de envios</h3>
+
+        {progresso && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-[var(--foreground)]">
+                Lote atual: {progresso.processados}/{progresso.total}
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)]">{progresso.percentual}%</p>
+            </div>
+            <div className="h-2 w-full rounded-full bg-white/80">
+              <div
+                className="h-2 rounded-full bg-[var(--primary)] transition-all duration-500"
+                style={{ width: `${progresso.percentual}%` }}
+              />
+            </div>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Enviados: {progresso.enviados} · Erros: {progresso.erros} · Pendentes: {progresso.pendentes}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="rounded-xl bg-[var(--muted)] p-3">

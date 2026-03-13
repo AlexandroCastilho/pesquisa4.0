@@ -22,9 +22,11 @@ Plataforma SaaS multi-empresa para criação, envio e coleta de respostas de pes
 - **Multi-empresa**: cada usuário pertence a uma `Empresa`; dados são isolados por `empresaId`
 - **Controle de acesso (RBAC)**: papéis `OWNER`, `ADMIN` e `MEMBER` com regras de permissão centralizadas
 - **Gestão de pesquisas**: criação, edição de perguntas, envio por e-mail e coleta de respostas
+- **Disparo assíncrono**: criação de lote de envio com processamento em segundo plano por status no banco
 - **Painel admin**: gerenciar papel e status (ativo/inativo) dos usuários da empresa
 - **Proteção server-side**: layout e rotas verificam autenticação e papel antes de renderizar
 - **Conta inativa**: usuários desativados são bloqueados no login e nas rotas protegidas
+- **Recuperação de senha**: fluxo completo de "esqueci minha senha" com link de redefinição via Supabase Auth
 
 ---
 
@@ -61,6 +63,7 @@ Crie um arquivo `.env.local` na raiz com as seguintes variáveis:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+NEXT_PUBLIC_APP_URL=https://<seu-dominio-ou-url-publica>
 
 # Banco de dados (session pooler do Supabase)
 DATABASE_URL=postgresql://postgres.<project>:<password>@aws-1-<region>.pooler.supabase.com:5432/postgres
@@ -119,6 +122,52 @@ Acesse [http://localhost:3000](http://localhost:3000).
 | `MEMBER` | ❌ | ❌ | ❌ |
 
 O primeiro usuário a se cadastrar recebe automaticamente o papel `OWNER`.
+
+---
+
+## Fluxo de recuperação de senha
+
+1. Usuário acessa `/esqueci-senha` e informa o e-mail.
+2. A API `/api/auth/forgot-password` chama `supabase.auth.resetPasswordForEmail`.
+3. O Supabase envia um link apontando para `/callback?next=/redefinir-senha`.
+4. A rota `/callback` troca o `code` por sessão e redireciona para `/redefinir-senha`.
+5. Usuário define a nova senha em `/redefinir-senha`.
+6. A API `/api/auth/reset-password` valida com Zod e chama `supabase.auth.updateUser`.
+
+> Garanta que `NEXT_PUBLIC_APP_URL` esteja configurada com a URL pública correta para que os links de e-mail funcionem fora do ambiente local.
+
+---
+
+## Fluxo de disparo assíncrono
+
+1. `POST /api/pesquisas/:id/disparar` cria um `DisparoJob` e registra os destinatários como `PENDENTE`.
+2. A API retorna imediatamente (`202`) com dados do lote.
+3. A tela de envios inicia polling em `GET /api/pesquisas/:id/disparos/:jobId?processar=1`.
+4. Cada poll processa um lote pequeno de pendências no backend, atualizando status no banco.
+5. O frontend recarrega a lista de envios e exibe progresso em tempo real.
+
+Status de `Envio`:
+- `PENDENTE`
+- `PROCESSANDO`
+- `ENVIADO`
+- `ERRO`
+- `RESPONDIDO`
+- `EXPIRADO`
+
+### Evitar duplicidade e reprocessamento
+
+- Ao criar o lote, destinatários já com envio ativo (`PENDENTE`, `PROCESSANDO`, `ENVIADO`, `RESPONDIDO`) são ignorados.
+- O processador usa lock por job e claim por envio para evitar corrida em execuções paralelas.
+- Jobs em andamento podem ser retomados com polling após reload da página.
+
+### Limitações e alternativa recomendada
+
+Em ambientes serverless/App Router, não existe garantia forte de worker residente contínuo dentro do processo web. Nesta implementação, o processamento é orientado por polling e persistido no banco (abordagem prática e robusta para o contexto atual).
+
+Para maior escala/confiabilidade, a melhor alternativa é mover o processamento para um worker dedicado, por exemplo:
+- fila externa (Upstash QStash, SQS, RabbitMQ)
+- scheduler/cron para drenar pendências
+- worker separado da aplicação web
 
 ---
 
