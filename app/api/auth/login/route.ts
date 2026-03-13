@@ -8,6 +8,20 @@ import { ensureTenantBootstrap } from "@/lib/auth/tenant-bootstrap.service";
 function mapLoginError(detail: string) {
   const normalized = detail.toLowerCase();
 
+  if (
+    normalized.includes("fetch failed") ||
+    normalized.includes("network") ||
+    normalized.includes("supabase_env_missing") ||
+    normalized.includes("supabase_url_invalid")
+  ) {
+    return {
+      status: 503,
+      message: "Falha de conexão com o serviço de autenticação.",
+      detail:
+        "Verifique as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no deploy da Vercel.",
+    };
+  }
+
   if (normalized.includes("email not confirmed") || normalized.includes("email_not_confirmed")) {
     return {
       status: 401,
@@ -68,6 +82,14 @@ export async function POST(request: Request) {
       const detail = error.issues.map((i) => i.message).join(" ");
       return NextResponse.json({ message: "Dados inválidos.", detail }, { status: 400 });
     }
-    return createErrorResponse({ error, message: "Falha ao fazer login." });
+    return createErrorResponse({
+      error,
+      message: "Falha ao fazer login.",
+      statusRules: [
+        { includes: "SUPABASE_ENV_MISSING", status: 503 },
+        { includes: "SUPABASE_URL_INVALID", status: 503 },
+        { includes: "fetch failed", status: 503 },
+      ],
+    });
   }
 }

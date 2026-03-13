@@ -5,6 +5,33 @@ import { createErrorResponse } from "@/lib/api-error";
 import { cadastroSchema } from "@/lib/validation/auth";
 import { ensureTenantBootstrap } from "@/lib/auth/tenant-bootstrap.service";
 
+function mapSignupError(detail: string) {
+  const normalized = detail.toLowerCase();
+
+  if (normalized.includes("redirect") || normalized.includes("redirect_to")) {
+    return {
+      status: 400,
+      message: "Não foi possível criar a conta.",
+      detail: "A URL de redirecionamento não está autorizada no Supabase Auth.",
+    };
+  }
+
+  if (normalized.includes("fetch failed") || normalized.includes("network")) {
+    return {
+      status: 503,
+      message: "Falha de conexão com o serviço de autenticação.",
+      detail:
+        "Verifique NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no deploy da Vercel.",
+    };
+  }
+
+  return {
+    status: 400,
+    message: "Não foi possível criar a conta.",
+    detail,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -15,7 +42,15 @@ export async function POST(request: Request) {
     const forwardedOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : null;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
     const requestOrigin = new URL(request.url).origin;
-    const redirectBaseUrl = appUrl ?? forwardedOrigin ?? requestOrigin;
+
+    // Em produção, se NEXT_PUBLIC_APP_URL estiver local, prioriza origem real da requisição.
+    const appUrlInvalidaEmProd =
+      process.env.NODE_ENV === "production" &&
+      Boolean(appUrl && /localhost|127\.0\.0\.1/i.test(appUrl));
+
+    const redirectBaseUrl = appUrlInvalidaEmProd
+      ? (forwardedOrigin ?? requestOrigin)
+      : (appUrl ?? forwardedOrigin ?? requestOrigin);
 
     const supabase = await createClient();
 
@@ -29,9 +64,10 @@ export async function POST(request: Request) {
     });
 
     if (error) {
+      const mapped = mapSignupError(error.message);
       return NextResponse.json(
-        { message: "Não foi possível criar a conta.", detail: error.message },
-        { status: 400 }
+        { message: mapped.message, detail: mapped.detail },
+        { status: mapped.status }
       );
     }
 
@@ -56,6 +92,11 @@ export async function POST(request: Request) {
     return createErrorResponse({
       error,
       message: "Falha ao criar conta.",
+      statusRules: [
+        { includes: "SUPABASE_ENV_MISSING", status: 503 },
+        { includes: "SUPABASE_URL_INVALID", status: 503 },
+        { includes: "fetch failed", status: 503 },
+      ],
     });
   }
 }
