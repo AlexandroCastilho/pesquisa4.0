@@ -37,6 +37,24 @@ function normalizeDatabaseUrl(rawUrl: string): string {
   return normalized;
 }
 
+function buildPoolConfig(connectionString: string): ConstructorParameters<typeof PrismaPg>[0] {
+  const envMax = Number.parseInt(process.env.PG_POOL_MAX ?? "", 10);
+  const envIdle = Number.parseInt(process.env.PG_POOL_IDLE_MS ?? "", 10);
+  const envConnectTimeout = Number.parseInt(process.env.PG_POOL_CONNECT_TIMEOUT_MS ?? "", 10);
+
+  const max = Number.isFinite(envMax) && envMax > 0 ? envMax : process.env.NODE_ENV === "production" ? 1 : 5;
+  const idleTimeoutMillis = Number.isFinite(envIdle) && envIdle >= 0 ? envIdle : 5_000;
+  const connectionTimeoutMillis =
+    Number.isFinite(envConnectTimeout) && envConnectTimeout > 0 ? envConnectTimeout : 10_000;
+
+  return {
+    connectionString,
+    max,
+    idleTimeoutMillis,
+    connectionTimeoutMillis,
+  };
+}
+
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
@@ -49,7 +67,12 @@ export function getPrismaClient(): PrismaClient {
     throw new Error("DATABASE_URL não definida no ambiente.");
   }
 
-  const adapter = new PrismaPg({ connectionString: normalizeDatabaseUrl(url) });
+  const connectionString = normalizeDatabaseUrl(url);
+  const adapter = new PrismaPg(buildPoolConfig(connectionString), {
+    onPoolError: (err) => {
+      console.error("[prisma] erro de pool pg:", err.message);
+    },
+  });
   const client = new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
