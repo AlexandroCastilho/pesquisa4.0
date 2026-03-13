@@ -1,0 +1,127 @@
+// Autenticação gerenciada pelo Supabase Auth (tabela auth.users).
+// Prisma gerencia apenas as tabelas de negócio.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id        String     @id
+  name      String?
+  company   String?
+  role      Role       @default(VIEWER)
+  pesquisas Pesquisa[]
+  criadoEm  DateTime   @default(now()) @map("criado_em")
+
+  @@map("profiles")
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+model Pesquisa {
+  id           String         @id @default(cuid())
+  titulo       String
+  descricao    String?
+  status       PesquisaStatus @default(RASCUNHO)
+  profileId    String         @map("profile_id")
+  profile      Profile        @relation(fields: [profileId], references: [id])
+  perguntas    Pergunta[]
+  envios       Envio[]
+  criadaEm     DateTime       @default(now()) @map("criada_em")
+  atualizadaEm DateTime       @updatedAt @map("atualizada_em")
+
+  @@map("pesquisas")
+}
+
+enum PesquisaStatus {
+  RASCUNHO
+  ATIVA
+  ENCERRADA
+}
+
+model Pergunta {
+  id         String         @id @default(cuid())
+  texto      String
+  tipo       TipoPergunta   @default(MULTIPLA_ESCOLHA)
+  ordem      Int            @default(0)
+  pesquisaId String         @map("pesquisa_id")
+  pesquisa   Pesquisa       @relation(fields: [pesquisaId], references: [id], onDelete: Cascade)
+  opcoes     Opcao[]
+  itens      RespostaItem[]
+
+  @@map("perguntas")
+}
+
+enum TipoPergunta {
+  MULTIPLA_ESCOLHA
+  TEXTO_LIVRE
+  ESCALA
+}
+
+model Opcao {
+  id         String         @id @default(cuid())
+  texto      String
+  ordem      Int            @default(0)
+  perguntaId String         @map("pergunta_id")
+  pergunta   Pergunta       @relation(fields: [perguntaId], references: [id], onDelete: Cascade)
+  itens      RespostaItem[]
+
+  @@map("opcoes")
+}
+
+model Envio {
+  id           String      @id @default(cuid())
+  pesquisaId   String      @map("pesquisa_id")
+  pesquisa     Pesquisa    @relation(fields: [pesquisaId], references: [id])
+  nome         String
+  email        String
+  token        String      @unique @default(cuid())
+  status       EnvioStatus @default(PENDENTE)
+  enviadoEm    DateTime?   @map("enviado_em")
+  respondidoEm DateTime?   @map("respondido_em")
+  expiraEm     DateTime?   @map("expira_em")
+  erroMsg      String?     @map("erro_msg")
+  resposta     Resposta?
+  criadoEm     DateTime    @default(now()) @map("criado_em")
+
+  @@map("envios")
+}
+
+enum EnvioStatus {
+  PENDENTE
+  ENVIADO
+  RESPONDIDO
+  EXPIRADO
+  ERRO
+}
+
+model Resposta {
+  id        String         @id @default(cuid())
+  envioId   String         @unique @map("envio_id")
+  envio     Envio          @relation(fields: [envioId], references: [id])
+  itens     RespostaItem[]
+  criadaEm  DateTime       @default(now()) @map("criada_em")
+
+  @@map("respostas")
+}
+
+model RespostaItem {
+  id          String   @id @default(cuid())
+  respostaId  String   @map("resposta_id")
+  resposta    Resposta @relation(fields: [respostaId], references: [id])
+  perguntaId  String   @map("pergunta_id")
+  pergunta    Pergunta @relation(fields: [perguntaId], references: [id])
+  opcaoId     String?  @map("opcao_id")
+  opcao       Opcao?   @relation(fields: [opcaoId], references: [id])
+  textoLivre  String?  @map("texto_livre")
+  valorEscala Int?     @map("valor_escala")
+
+  @@map("resposta_itens")
+}
