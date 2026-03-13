@@ -6,6 +6,7 @@
     "dev": "next dev",
     "dev:clean": "bash scripts/dev-clean.sh",
     "dev:fresh": "npm run dev:clean && npm run dev",
+    "prebuild": "prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
