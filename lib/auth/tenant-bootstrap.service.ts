@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
 import type { Role } from "@/types/role";
 import { getPrismaClient } from "@/lib/prisma";
 import {
@@ -16,6 +15,10 @@ type BootstrapInput = {
   preferredName?: string | null;
   preferredCompany?: string | null;
 };
+
+type TxClient = Parameters<
+  Parameters<ReturnType<typeof getPrismaClient>["$transaction"]>[0]
+>[0];
 
 function cleanText(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -64,7 +67,7 @@ export async function ensureTenantBootstrap(input: BootstrapInput): Promise<{
   const preferredName = cleanText(input.preferredName ?? metadataName);
   const preferredCompany = cleanText(input.preferredCompany ?? metadataCompany);
 
-  const profileWithEmpresa = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  const profileWithEmpresa = await prisma.$transaction(async (tx: TxClient) => {
     const existingProfile = await tx.profile.findUnique({
       where: { id: input.user.id },
       include: { empresa: true },

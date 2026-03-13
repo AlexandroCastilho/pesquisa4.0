@@ -1,7 +1,10 @@
-import type { Prisma } from "@prisma/client";
 import type { Role } from "@/types/role";
 import { canAssignRole, canEditTargetUser, canManageUsers } from "@/lib/access-control";
 import { getPrismaClient } from "@/lib/prisma";
+
+type TxClient = Parameters<
+  Parameters<ReturnType<typeof getPrismaClient>["$transaction"]>[0]
+>[0];
 
 type Actor = {
   id: string;
@@ -29,7 +32,7 @@ export async function atualizarAcessoUsuario({
   assertActorCanManageUsers(actor.role);
   const prisma = getPrismaClient();
 
-  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  return prisma.$transaction(async (tx: TxClient) => {
     const target = await tx.profile.findFirst({
       where: { id: targetUserId, empresaId: actor.empresaId },
       select: {

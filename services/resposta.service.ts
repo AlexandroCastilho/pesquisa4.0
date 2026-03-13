@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { getPrismaClient } from "@/lib/prisma";
 import type { RespostaInput } from "@/lib/validation/pesquisa";
 import {
@@ -13,17 +12,29 @@ type EnvioEstadoResposta = {
   resposta: { id: string } | null;
 };
 
-export type RespostaDaPesquisa = Prisma.RespostaGetPayload<{
-  include: {
-    itens: {
-      include: {
-        pergunta: { select: { texto: true; tipo: true } };
-        opcao: { select: { texto: true } };
-      };
-    };
-    envio: { select: { nome: true; email: true; respondidoEm: true } };
+type TxClient = Parameters<
+  Parameters<ReturnType<typeof getPrismaClient>["$transaction"]>[0]
+>[0];
+
+export type RespostaDaPesquisa = {
+  id: string;
+  envioId: string;
+  criadaEm: Date;
+  envio: {
+    nome: string;
+    email: string;
+    respondidoEm: Date | null;
   };
-}>;
+  itens: Array<{
+    id: string;
+    perguntaId: string;
+    opcaoId: string | null;
+    textoLivre: string | null;
+    valorEscala: number | null;
+    pergunta: { texto: string; tipo: "MULTIPLA_ESCOLHA" | "TEXTO_LIVRE" | "ESCALA" };
+    opcao: { texto: string } | null;
+  }>;
+};
 
 export function validarEstadoEnvioParaResposta(envio: EnvioEstadoResposta): {
   expirouAgora: boolean;
@@ -79,7 +90,7 @@ export async function registrarResposta(token: string, input: RespostaInput) {
   const prisma = getPrismaClient();
 
   try {
-    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return await prisma.$transaction(async (tx: TxClient) => {
       const envio = await tx.envio.findUnique({
         where: { token },
         select: {
@@ -144,8 +155,10 @@ export async function registrarResposta(token: string, input: RespostaInput) {
     });
   } catch (error) {
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
     ) {
       throw new Error(RESPOSTA_ERROS.PESQUISA_JA_RESPONDIDA);
     }
