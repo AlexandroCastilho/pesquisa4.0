@@ -3,6 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaDatabaseUrlAdjustedLogged: boolean | undefined;
 };
 
 function normalizeDatabaseUrl(rawUrl: string): string {
@@ -26,9 +27,13 @@ function normalizeDatabaseUrl(rawUrl: string): string {
       }
 
       normalized = parsed.toString();
-      console.warn(
-        "[prisma] DATABASE_URL ajustada para transaction pooler (6543) em produção para evitar MaxClientsInSessionMode."
-      );
+
+      if (!globalForPrisma.prismaDatabaseUrlAdjustedLogged) {
+        console.warn(
+          "[prisma] DATABASE_URL ajustada para transaction pooler (6543) em produção para evitar MaxClientsInSessionMode."
+        );
+        globalForPrisma.prismaDatabaseUrlAdjustedLogged = true;
+      }
     }
   } catch {
     // Mantém URL original; erro de formato será reportado pelo driver ao conectar.

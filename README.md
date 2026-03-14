@@ -86,7 +86,7 @@ SMTP_HOST=smtp.exemplo.com
 SMTP_PORT=587
 SMTP_USER=<usuario-smtp>
 SMTP_PASS=<senha-smtp>
-EMAIL_FROM=noreply@seudominio.com
+EMAIL_FROM="PulseCliente <noreply@seudominio.com>"
 ```
 
 ---

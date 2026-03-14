@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import nodemailer from "nodemailer";
 
 type SmtpConfig = {
@@ -51,7 +52,8 @@ function getSmtpConfig(): SmtpConfig | null {
 }
 
 function getTransporter(config: SmtpConfig): nodemailer.Transporter {
-  const key = `${config.host}:${config.port}:${config.secure}:${config.user}`;
+  const authFingerprint = createHash("sha256").update(config.pass).digest("hex");
+  const key = `${config.host}:${config.port}:${config.secure}:${config.user}:${authFingerprint}`;
 
   if (!cachedTransporter || cachedTransporterKey !== key) {
     cachedTransporter = nodemailer.createTransport({
