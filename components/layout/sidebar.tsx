@@ -18,7 +18,12 @@ export function Sidebar({ canManageUsers, companyName, role }: Props) {
   const links = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/pesquisas", label: "Pesquisas" },
-    ...(canManageUsers ? [{ href: "/admin/usuarios", label: "Admin" }] : []),
+    ...(canManageUsers
+      ? [
+          { href: "/admin/usuarios", label: "Admin" },
+          { href: "/admin/configuracoes/smtp", label: "SMTP" },
+        ]
+      : []),
   ];
 
   async function handleLogout() {
@@ -27,10 +32,11 @@ export function Sidebar({ canManageUsers, companyName, role }: Props) {
   }
 
   return (
-    <aside className="w-full md:w-72 md:min-h-screen border-b md:border-b-0 md:border-r border-[var(--border)] bg-[var(--card)]/94 backdrop-blur-xl flex flex-col py-4 md:py-6 px-4">
+    <aside className="w-full md:w-72 md:min-h-screen border-b md:border-b-0 md:border-r border-[var(--border)] bg-[var(--card)]/92 backdrop-blur-xl flex flex-col py-4 md:py-6 px-4 grain-overlay">
       <div className="mb-4 md:mb-6 px-2">
-        <div className="surface-soft px-3 py-3.5">
-          <p className="text-[var(--foreground)] font-bold text-lg tracking-tight">PulseCliente</p>
+        <div className="surface-soft px-3 py-3.5 relative overflow-hidden">
+          <div className="absolute right-0 top-0 h-10 w-10 rounded-full bg-[var(--accent)]/60 blur-xl" />
+          <p className="text-[var(--foreground)] font-bold text-lg tracking-tight relative">PulseCliente</p>
           <p className="text-xs text-[var(--muted-foreground)] mt-1">{companyName}</p>
           <p className="text-xs text-[var(--muted-foreground)] mt-1">Perfil: {getRoleLabel(role)}</p>
         </div>
@@ -45,8 +51,8 @@ export function Sidebar({ canManageUsers, companyName, role }: Props) {
               href={href}
               className={`block rounded-xl px-3 py-2.5 text-sm font-semibold transition border ${
                 active
-                  ? "bg-[var(--accent)] text-[var(--accent-foreground)] border-[color:var(--primary)]/30 shadow-sm"
-                  : "text-[var(--muted-foreground)] border-transparent hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                  ? "bg-[color:var(--primary)]/10 text-[var(--foreground)] border-[color:var(--primary)]/40 shadow-sm"
+                  : "text-[var(--muted-foreground)] border-transparent hover:bg-[var(--muted)]/90 hover:text-[var(--foreground)]"
               }`}
             >
               {label}

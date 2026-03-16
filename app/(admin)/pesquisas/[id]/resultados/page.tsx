@@ -3,11 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { getAuthTenantContext } from "@/lib/auth-context";
 import { buscarPesquisa } from "@/services/pesquisa.service";
 import { listarRespostasDaPesquisa } from "@/services/resposta.service";
+import { ResultadosClient } from "@/components/pesquisas/resultados-client";
 
 type Props = { params: Promise<{ id: string }> };
-type RespostasDaPesquisa = Awaited<ReturnType<typeof listarRespostasDaPesquisa>>;
-type RespostaDaPesquisa = RespostasDaPesquisa[number];
-type ItemDaResposta = RespostaDaPesquisa["itens"][number];
 
 export default async function ResultadosPage({ params }: Props) {
   const { id } = await params;
@@ -23,6 +21,11 @@ export default async function ResultadosPage({ params }: Props) {
   const respostas = await listarRespostasDaPesquisa(id, ctx.empresa.id);
   const totalEnvios = pesquisa._count.envios;
   const taxaResposta = totalEnvios > 0 ? Math.round((respostas.length / totalEnvios) * 100) : 0;
+
+  const perguntas = pesquisa.perguntas.map((p: { id: string; texto: string }) => ({
+    id: p.id,
+    texto: p.texto,
+  }));
 
   return (
     <div className="space-y-6">
@@ -49,38 +52,11 @@ export default async function ResultadosPage({ params }: Props) {
         </div>
       </div>
 
-      {respostas.length === 0 ? (
-        <div className="empty-state">
-          <p className="text-[var(--foreground)] font-semibold">Nenhuma resposta recebida ainda</p>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">Quando os destinatários responderem, você verá as análises aqui.</p>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {respostas.map((r: RespostaDaPesquisa) => (
-            <div key={r.id} className="app-card p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="font-semibold text-[var(--card-foreground)]">{r.envio.nome}</p>
-                  <p className="text-sm text-[var(--muted-foreground)]">{r.envio.email}</p>
-                </div>
-                <p className="text-xs text-[var(--muted-foreground)]">{r.itens.length} item(ns)</p>
-              </div>
-              <div className="space-y-3">
-                {r.itens.map((item: ItemDaResposta) => (
-                  <div key={item.id} className="surface-soft p-3 text-sm">
-                    <p className="font-medium text-[var(--foreground)]">{item.pergunta.texto}</p>
-                    <p className="mt-0.5 text-[var(--muted-foreground)]">
-                      {item.opcao?.texto ??
-                        item.textoLivre ??
-                        (item.valorEscala !== null ? `Nota: ${item.valorEscala}` : "—")}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <ResultadosClient
+        pesquisaTitulo={pesquisa.titulo}
+        perguntas={perguntas}
+        respostas={respostas}
+      />
     </div>
   );
 }

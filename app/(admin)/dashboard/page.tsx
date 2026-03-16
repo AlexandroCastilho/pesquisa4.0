@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthTenantContext } from "@/lib/auth-context";
 import { getPrismaClient } from "@/lib/prisma";
+import { DashboardTendencias } from "@/components/dashboard/tendencias";
 
 export default async function DashboardPage() {
   const ctx = await getAuthTenantContext();
@@ -26,16 +27,27 @@ export default async function DashboardPage() {
     totalEnvios > 0 ? Math.round((respondidos / totalEnvios) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 reveal-up">
+      <div className="app-card p-5 lg:p-6 relative overflow-hidden">
+        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[var(--accent)]/60 blur-2xl" />
+        <div className="absolute right-16 top-8 h-24 w-24 rounded-full bg-[var(--primary)]/20 blur-xl" />
+        <div className="page-header relative">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-subtitle">Visão consolidada das pesquisas e engajamento de respostas.</p>
+          </div>
+
+          <Link href="/pesquisas/nova" className="btn-primary">
+            + Nova pesquisa
+          </Link>
+        </div>
+      </div>
+
       <div className="page-header">
         <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Visão consolidada das pesquisas e engajamento de respostas.</p>
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--foreground)]">Resumo rápido</h2>
+          <p className="page-subtitle">Indicadores principais para decisão diária.</p>
         </div>
-
-        <Link href="/pesquisas/nova" className="btn-primary">
-          + Nova pesquisa
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5">
@@ -66,6 +78,8 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <DashboardTendencias />
     </div>
   );
 }

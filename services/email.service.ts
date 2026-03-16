@@ -15,6 +15,16 @@ const SMTP_TIMEOUT_MS = 10_000;
 let cachedTransporter: nodemailer.Transporter | null = null;
 let cachedTransporterKey: string | null = null;
 
+export type SmtpRuntimeStatus = {
+  configured: boolean;
+  host: string | null;
+  port: number | null;
+  secure: boolean | null;
+  userMask: string | null;
+  from: string | null;
+  missing: string[];
+};
+
 function parseSmtpSecure(value: string): boolean {
   return value.trim().toLowerCase() === "true";
 }
@@ -69,6 +79,75 @@ function getTransporter(config: SmtpConfig): nodemailer.Transporter {
   }
 
   return cachedTransporter;
+}
+
+function maskUser(user: string): string {
+  if (!user) return "";
+  const [prefix, domain] = user.split("@");
+  if (!domain) {
+    if (user.length <= 2) return "**";
+    return `${user.slice(0, 2)}***`;
+  }
+  const visible = prefix.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(prefix.length - 2, 2))}@${domain}`;
+}
+
+export function getSmtpRuntimeStatus(): SmtpRuntimeStatus {
+  const host = process.env.SMTP_HOST?.trim() ?? "";
+  const portRaw = process.env.SMTP_PORT?.trim() ?? "";
+  const secureRaw = process.env.SMTP_SECURE?.trim() ?? "";
+  const user = process.env.SMTP_USER?.trim() ?? "";
+  const pass = process.env.SMTP_PASS?.trim() ?? "";
+  const from = process.env.EMAIL_FROM?.trim() ?? "";
+
+  const missing: string[] = [];
+  if (!host) missing.push("SMTP_HOST");
+  if (!portRaw) missing.push("SMTP_PORT");
+  if (!secureRaw) missing.push("SMTP_SECURE");
+  if (!user) missing.push("SMTP_USER");
+  if (!pass) missing.push("SMTP_PASS");
+  if (!from) missing.push("EMAIL_FROM");
+
+  const parsedPort = Number(portRaw);
+  const port = Number.isInteger(parsedPort) && parsedPort > 0 ? parsedPort : null;
+
+  return {
+    configured: missing.length === 0,
+    host: host || null,
+    port,
+    secure: secureRaw ? parseSmtpSecure(secureRaw) : null,
+    userMask: user ? maskUser(user) : null,
+    from: from || null,
+    missing,
+  };
+}
+
+export async function verifySmtpConnection(): Promise<{ ok: boolean; detail: string }> {
+  const config = getSmtpConfig();
+  if (!config) {
+    return {
+      ok: false,
+      detail: "SMTP não configurado no ambiente atual.",
+    };
+  }
+
+  try {
+    const transporter = getTransporter(config);
+    await Promise.race([
+      transporter.verify(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Tempo limite excedido ao validar conexão SMTP.")),
+          SMTP_TIMEOUT_MS
+        )
+      ),
+    ]);
+
+    return { ok: true, detail: "Conexão SMTP validada com sucesso." };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "erro desconhecido";
+    return { ok: false, detail: `Falha ao validar SMTP: ${detail}` };
+  }
 }
 
 export type SendEmailInput = {

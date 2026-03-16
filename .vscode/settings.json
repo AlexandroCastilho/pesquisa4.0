@@ -1,0 +1,9 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /workspaces/pesquisa4\\.0 && node - <<'NODE'\nconst fs = require\\('fs'\\);\nconst path = require\\('path'\\);\nconst nodemailer = require\\('nodemailer'\\);\nconst envText = fs\\.readFileSync\\(path\\.join\\(process\\.cwd\\(\\), '\\.env'\\), 'utf8'\\);\nfor \\(const line of envText\\.split\\(/\\\\r\\?\\\\n/\\)\\) \\{\n  const trimmed = line\\.trim\\(\\);\n  if \\(!trimmed \\|\\| trimmed\\.startsWith\\('#'\\)\\) continue;\n  const eq = trimmed\\.indexOf\\('='\\);\n  if \\(eq === -1\\) continue;\n  const key = trimmed\\.slice\\(0, eq\\)\\.trim\\(\\);\n  const value = trimmed\\.slice\\(eq \\+ 1\\)\\.trim\\(\\);\n  process\\.env\\[key\\] = value;\n\\}\n\\(async \\(\\) => \\{\n  try \\{\n    const transporter = nodemailer\\.createTransport\\(\\{\n      host: process\\.env\\.SMTP_HOST,\n      port: Number\\(process\\.env\\.SMTP_PORT\\),\n      secure: String\\(process\\.env\\.SMTP_SECURE\\)\\.toLowerCase\\(\\) === 'true',\n      authMethod: 'LOGIN',\n      auth: \\{ user: process\\.env\\.SMTP_USER, pass: process\\.env\\.SMTP_PASS \\},\n      connectionTimeout: 10000,\n      greetingTimeout: 10000,\n      socketTimeout: 10000,\n    \\}\\);\n    await transporter\\.verify\\(\\);\n    console\\.log\\('VERIFY_OK_LOGIN'\\);\n  \\} catch \\(error\\) \\{\n    console\\.log\\('VERIFY_ERR_LOGIN'\\);\n    console\\.log\\(error && error\\.message \\? error\\.message : String\\(error\\)\\);\n  \\}\n\\}\\)\\(\\);\nNODE$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "gh": true
+    }
+}
